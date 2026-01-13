@@ -1,0 +1,7 @@
+{
+  "name": "Wacu - Rwandan Experiences",
+  "description": "A mobile-first accommodation marketplace designed for Rwanda, featuring mobile money payments, community trust, and landmark-based directions. Wacu means home.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
