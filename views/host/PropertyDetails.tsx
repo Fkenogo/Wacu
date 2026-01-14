@@ -52,7 +52,7 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
   };
 
   const privacyOptions = [
-    { id: 'Entire Place', label: 'Entire Place', desc: 'Guests have the whole property to themselves.', icon: '🔑' },
+    { id: 'Entire Place', label: 'Entire Place', desc: 'Guests have the whole Wacu to themselves.', icon: '🔑' },
     { id: 'Private Room', label: 'Private Room', desc: 'Guests have their own room but share other spaces.', icon: '🚪' },
     { id: 'Shared Room', label: 'Shared Room', desc: 'Guests stay in a bedroom or common area shared with others.', icon: '🤝' }
   ];
@@ -67,15 +67,15 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
   return (
     <div className="p-6 flex flex-col space-y-6 animate-fadeIn h-full">
       <div className="space-y-1">
-        <h2 className="text-2xl font-black text-slate-900 leading-tight">Make Your Space Shine</h2>
-        <p className="text-slate-500 text-sm font-medium">Define the space and hosting style that makes you unique.</p>
+        <h2 className="text-2xl font-black text-slate-900 leading-tight">Make Your Wacu Shine</h2>
+        <p className="text-slate-500 text-sm font-medium">Define the space and hosting style that makes your Wacu unique.</p>
       </div>
 
       <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-10">
         {/* Main Photo Upload Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center px-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Listing Photo</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Wacu Photo</label>
             <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full uppercase">Must Have</span>
           </div>
           
@@ -107,11 +107,11 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
             ) : (
               <div className="text-center p-6">
                 <span className="text-4xl mb-2 block animate-bounce">📸</span>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tap to Upload Magic</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tap to Upload Wacu Magic</p>
               </div>
             )}
           </div>
-          {isPhotoInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Every gem needs a photo!</p>}
+          {isPhotoInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">EVERY WACU NEEDS A PHOTO!</p>}
         </div>
 
         {/* Privacy & Space Selector */}
@@ -143,7 +143,7 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
 
         {/* Name Input */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Give Your Gem a Catchy Name</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GIVE YOUR WACU A CATCHY NAME</label>
           <input 
             type="text"
             value={state.name}
@@ -157,14 +157,14 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
           {isNameInvalid && (
             <div className="flex items-center gap-1.5 ml-1 animate-fadeIn">
                <span className="text-red-500 text-xs">⚠️</span>
-               <p className="text-[10px] text-red-500 font-black uppercase tracking-tight">Wait! Your Gem Needs a Name to Stand Out!</p>
+               <p className="text-[10px] text-red-500 font-black uppercase tracking-tight">Wait! Your Wacu Needs a Name to Stand Out!</p>
             </div>
           )}
         </div>
 
         {/* Description Input */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Why Will Guests Obsess Over This?</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Why Will Guests Obsess Over This Wacu?</label>
           <textarea 
             rows={4}
             value={state.description}
@@ -175,12 +175,12 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
               isDescInvalid ? 'border-red-400 focus:border-red-500 bg-red-50/20 ring-4 ring-red-400/5' : 'border-gray-100 focus:border-amber-400 shadow-sm'
             }`}
           />
-          {isDescInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Share the story of your space!</p>}
+          {isDescInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Share the story of your Wacu!</p>}
         </div>
 
         {/* Instructions Input */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">The Secret Path to Your Door</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">The Secret Path to Your Wacu Door</label>
           <textarea 
             rows={3}
             value={state.howToGetThere}
@@ -199,7 +199,7 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
         onClick={handleContinue}
         className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] shadow-2xl active:scale-95 transition-all uppercase tracking-[0.2em] text-xs hover:bg-slate-800"
       >
-        Pin Your Paradise on the Map!
+        PIN YOUR WACU ON THE MAP!
       </button>
     </div>
   );

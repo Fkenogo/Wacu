@@ -41,7 +41,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ role, onSetRole, onSearch, o
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-slate-900">Discover a Wacu to call yours</p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Magic Awaits • Any Week • Add Guests</p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Wacu Magic Awaits • Any Week • Add Guests</p>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ role, onSetRole, onSearch, o
       <div className="space-y-4">
         <div className="flex justify-between items-end px-6">
           <h3 className="text-xl font-black text-slate-900 leading-tight">Wacus You Won't Find Anywhere Else</h3>
-          <button onClick={() => onSearch()} className="text-[10px] font-black text-amber-600 uppercase tracking-widest border-b-2 border-amber-600/20 pb-0.5">Show Me More</button>
+          <button onClick={() => onSearch()} className="text-[10px] font-black text-amber-600 uppercase tracking-widest border-b-2 border-amber-600/20 pb-0.5">Show Me More Wacus</button>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar px-6 snap-x">
           {featuredStays.map(listing => (
@@ -121,7 +121,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ role, onSetRole, onSearch, o
       <div className="space-y-4 pt-4">
         <div className="flex justify-between items-end px-6">
           <h3 className="text-xl font-black text-slate-900 leading-tight">The Wacus Everyone is Obsessed With</h3>
-          <button onClick={() => onSearch()} className="text-[10px] font-black text-amber-600 uppercase tracking-widest border-b-2 border-amber-600/20 pb-0.5">Join the Trend</button>
+          <button onClick={() => onSearch()} className="text-[10px] font-black text-amber-600 uppercase tracking-widest border-b-2 border-amber-600/20 pb-0.5">Join the Wacu Trend</button>
         </div>
         <div className="flex gap-4 overflow-x-auto no-scrollbar px-6 snap-x pb-4">
           {guestFavorites.map(listing => (
@@ -154,7 +154,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ role, onSetRole, onSearch, o
         <div className="bg-slate-900 rounded-[3rem] p-8 text-white relative overflow-hidden shadow-2xl">
            <div className="relative z-10 space-y-4">
              <h3 className="text-3xl font-black leading-none">Turn Your Spare Space into a Wacu</h3>
-             <p className="text-slate-400 text-sm font-medium">Join our community of hosts and share the magic of Rwanda. Your home, their story.</p>
+             <p className="text-slate-400 text-sm font-medium">Join our community of hosts and share the magic of Rwanda. Your home, their Wacu story.</p>
              <button 
               onClick={onHostStart}
               className="bg-white text-slate-900 font-black px-8 py-4 rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg"

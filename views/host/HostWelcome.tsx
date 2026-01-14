@@ -19,15 +19,15 @@ export const HostWelcome: React.FC<{ onStart: () => void }> = ({ onStart }) => {
         <div className="flex items-center space-x-4 text-left p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
           <span className="text-2xl">💵</span>
           <div>
-            <h4 className="font-bold text-sm">Passive Goldmine</h4>
-            <p className="text-[10px] text-gray-400">Earn RWF by sharing your Wacu</p>
+            <h4 className="font-bold text-sm">Passive Wacu Goldmine</h4>
+            <p className="text-[10px] text-gray-400">Earn RWF by sharing your Wacu family home</p>
           </div>
         </div>
         <div className="flex items-center space-x-4 text-left p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
           <span className="text-2xl">🛡️</span>
           <div>
             <h4 className="font-bold text-sm">Wacu Protection</h4>
-            <p className="text-[10px] text-gray-400">Verified guests only. Our community stays safe.</p>
+            <p className="text-[10px] text-gray-400">Verified guests only. Our Wacu community stays safe.</p>
           </div>
         </div>
       </div>

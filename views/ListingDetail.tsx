@@ -67,7 +67,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
       <div className="relative aspect-[4/3] bg-gray-200">
         <img src={listing.image} alt={listing.title} className="w-full h-full object-cover shadow-inner" />
         <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full">
-          1 / 5 Photos
+          1 / 5 Wacu Photos
         </div>
         
         <div className="absolute top-4 right-4 flex flex-col gap-3">
@@ -127,7 +127,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
             <div>
               <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Wacu Host</p>
               <h4 className="text-base font-black text-slate-900 leading-none">{listing.hostName}</h4>
-              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Verified Legend • {listing.hostCompletedStays} Wacus Hosted</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Verified Wacu Legend • {listing.hostCompletedStays} Wacus Hosted</p>
             </div>
           </div>
           <span className="text-slate-300 font-black group-hover:translate-x-1 transition-transform">→</span>
@@ -169,7 +169,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
         <div className="space-y-6 pt-4 border-t border-slate-50">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-slate-900 uppercase tracking-widest text-[11px]">THE WACU BUZZ</h4>
-            <span className="text-[9px] font-black text-amber-500 uppercase">SEE WHAT OTHERS ARE SAYING</span>
+            <span className="text-[9px] font-black text-amber-500 uppercase">SEE WHAT THE WACU FAMILY SAYS</span>
           </div>
 
           <div className="space-y-6">
@@ -186,7 +186,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-2xl rounded-tl-none">{review.comment}</p>
                     <div className="flex items-center gap-4 pt-1">
-                      <button className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900">Love this ({review.likes || 0})</button>
+                      <button className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900">Love this Wacu ({review.likes || 0})</button>
                       <button className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900">Reply</button>
                     </div>
                   </div>
@@ -198,7 +198,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
                     <div className="flex-1 space-y-1">
                       <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Wacu Host Reply</p>
                       <p className="text-xs text-slate-600 leading-relaxed font-medium bg-amber-50/50 p-3 rounded-2xl rounded-tl-none border border-amber-100/50">
-                        Thank you for the kind words! We can't wait to have you back soon at our Wacu.
+                        Thank you for the kind words! We can't wait to have you back soon at our Wacu family home.
                       </p>
                     </div>
                   </div>
@@ -232,7 +232,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
             <div className="flex items-center gap-3">
               <span className="text-2xl">📍</span>
               <div>
-                <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest">Your North Star</p>
+                <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest">Wacu North Star</p>
                 <p className="text-sm font-black text-slate-900">{listing.landmark}</p>
               </div>
             </div>
@@ -274,13 +274,13 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
                  </div>
                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-1">
                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Response Time</p>
-                   <p className="text-xs font-black text-slate-900 uppercase tracking-tighter">Fast as Lightning</p>
+                   <p className="text-xs font-black text-slate-900 uppercase tracking-tighter">Fast as Wacu Lightning</p>
                  </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">About the host</h4>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">About the Wacu host</h4>
                   <p className="text-sm text-slate-600 font-medium leading-relaxed italic">"{listing.hostBio || "I am passionate about sharing our Wacu and ensuring every guest feels like part of the family."}"</p>
                 </div>
               </div>
@@ -304,7 +304,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
                   onClick={openWhatsApp}
                   className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
-                  <span className="text-xl">💬</span> WhatsApp Now
+                  <span className="text-xl">💬</span> Message on WhatsApp
                 </button>
               </div>
             </div>
@@ -324,7 +324,7 @@ export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, i
           onClick={onBook}
           className="bg-amber-500 hover:bg-amber-600 text-white px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-amber-200 active:scale-95 transition-all transform -translate-y-1"
         >
-          Claim Your Spot!
+          Claim Your Wacu Spot!
         </button>
       </div>
     </div>

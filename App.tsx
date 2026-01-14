@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { View, Listing, BookingState, HostListingState, UserRole, GuestProfile, StructuredReview, AuditEntry, TrustBadge } from './types';
-import { MOCK_LISTINGS } from './constants';
+import { MOCK_LISTINGS, AMENITIES } from './constants';
 import { Layout } from './components/Layout';
 import { HomeView } from './views/Home';
 import { SearchResultsView } from './views/SearchResults';
@@ -40,54 +41,109 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('HOME');
   const [history, setHistory] = useState<View[]>([]);
   const [userRole, setUserRole] = useState<UserRole>(UserRole.GUEST);
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [activeReviewTrip, setActiveReviewTrip] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+  const [hasAdminRights, setHasAdminRights] = useState(false);
 
   // Engagement State
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
-  const [likedIds, setLikedIds] = useState<string[]>([]);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
 
   const toggleWishlist = (id: string) => {
-    setWishlistIds(prev => prev.includes(id) ? prev.filter(wid => wid !== id) : [...prev, id]);
+    setWishlistIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(wishId => wishId !== id) 
+        : [...prev, id]
+    );
   };
 
   const toggleLike = (id: string) => {
-    setLikedIds(prev => prev.includes(id) ? prev.filter(lid => lid !== id) : [...prev, id]);
+    setLikedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  // Dynamic Guest State - Starts at Level 1 Baseline
+  // Dynamic Guest State
   const [guestProfile, setGuestProfile] = useState<GuestProfile>({
     name: 'Clarisse Keza',
     phone: '0788123456',
     isPhoneVerified: true,
-    bio: '',
+    bio: 'Avid traveler and community builder from Kigali.',
     avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=200&h=200&fit=crop',
-    verificationLevel: 1,
-    badges: ['Contact Verified'], 
-    completedStays: 0,
-    hostRecommendationRate: 0,
-    identityDocumentStored: false,
-    safetyPledgeAccepted: false
+    verificationLevel: 2,
+    badges: ['Contact Verified', 'Identity Verified'], 
+    completedStays: 5,
+    hostRecommendationRate: 98,
+    identityDocumentStored: true,
+    safetyPledgeAccepted: true
   });
 
-  // Effect to derive badges from state
-  useEffect(() => {
-    const newBadges: TrustBadge[] = [];
-    if (guestProfile.isPhoneVerified) newBadges.push('Contact Verified');
-    if (guestProfile.identityDocumentStored) newBadges.push('Identity Verified');
-    if (guestProfile.completedStays > 0) newBadges.push('Active Guest');
-    if (guestProfile.hostRecommendationRate > 90) newBadges.push('Community Trusted');
-    if (guestProfile.safetyPledgeAccepted) newBadges.push('Safety Pledge');
-    
-    if (JSON.stringify(newBadges) !== JSON.stringify(guestProfile.badges)) {
-        setGuestProfile(prev => ({ ...prev, badges: newBadges }));
+  // MOCK DATA FOR TESTING ALL FLOWS
+  const [myTrips, setMyTrips] = useState<BookingState[]>([
+    {
+      id: 'BK-PREV-01',
+      listingId: '1',
+      hostName: 'Jean Bosco',
+      startDate: '2024-01-10',
+      endDate: '2024-01-15',
+      status: 'COMPLETED',
+      totalPrice: 62500,
+      payoutReleased: true,
+      rulesAcknowledged: true,
+      guestReview: { submitted: false, q1: false, q2: false, q3: false }
     }
-  }, [guestProfile.isPhoneVerified, guestProfile.identityDocumentStored, guestProfile.completedStays, guestProfile.hostRecommendationRate, guestProfile.safetyPledgeAccepted]);
+  ]);
+  
+  const [myListings, setMyListings] = useState<HostListingState[]>([
+    {
+      id: 'LS-001',
+      name: 'The Secret Hillside Haven',
+      type: 'Entire Home' as any,
+      status: 'APPROVED',
+      pricePerNight: 25000,
+      capacity: 4,
+      landmark: 'Amahoro Stadium',
+      description: 'A beautiful hidden gem with a perfect view of the hills.',
+      photos: ['https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=800&q=80'],
+      amenities: ['wifi', 'kitchen', 'shower'],
+      tags: ['Family-friendly', 'Host lives on site'],
+      rules: { smoking: false, pets: true, curfew: false },
+      hostName: 'Clarisse Keza',
+      dateSubmitted: '2023-11-15'
+    }
+  ]);
 
-  const [myTrips, setMyTrips] = useState<BookingState[]>([]);
-  const [myListings, setMyListings] = useState<HostListingState[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<BookingState[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<BookingState[]>([
+    {
+      id: 'BK-991',
+      listingId: 'LS-001',
+      guestName: 'Emmanuel Mugisha',
+      guestProfile: {
+        name: 'Emmanuel Mugisha',
+        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop',
+        verificationLevel: 2,
+        badges: ['Identity Verified', 'Safety Pledge'],
+        completedStays: 12,
+        hostRecommendationRate: 100,
+        phone: '0780000000',
+        isPhoneVerified: true,
+        bio: 'Visiting for a business conference. Respectful and quiet.',
+        identityDocumentStored: true,
+        safetyPledgeAccepted: true
+      },
+      startDate: '2024-03-10',
+      endDate: '2024-03-14',
+      status: 'PENDING_APPROVAL',
+      totalPrice: 102000,
+      payoutReleased: false,
+      rulesAcknowledged: true
+    }
+  ]);
 
   const [booking, setBooking] = useState<BookingState>({
     listingId: null,
@@ -120,26 +176,12 @@ const App: React.FC = () => {
     rules: { smoking: false, pets: false, curfew: false },
     photos: [],
     pricePerNight: 0,
-    // Fix: Replaced invalid 'boolean = false' with just 'false'
     weeklyDiscount: false,
     availability: 'Always',
     verificationMethod: null,
     verificationCompleted: ['Phone'],
     status: 'DRAFT'
   });
-
-  const addAuditLog = (action: string, details: string, adminId?: string) => {
-    const entry: AuditEntry = {
-      id: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      timestamp: new Date().toLocaleString(),
-      userId: guestProfile.phone,
-      userName: guestProfile.name,
-      action,
-      details,
-      adminId
-    };
-    setAuditLogs(prev => [entry, ...prev]);
-  };
 
   const navigate = (nextView: View) => {
     setHistory(prev => [...prev, currentView]);
@@ -178,11 +220,6 @@ const App: React.FC = () => {
     setHostListing(prev => ({ ...prev, ...updates }));
   };
 
-  const startPaymentFlow = () => {
-    updateBooking({ status: 'PENDING_PAYMENT' });
-    navigate('PROCESSING');
-  };
-
   const finalizeBooking = () => {
     const final: BookingState = { 
       ...booking, 
@@ -195,240 +232,63 @@ const App: React.FC = () => {
     };
     setMyTrips(prev => [...prev, final]);
     setPendingRequests(prev => [...prev, { ...final, status: 'PENDING_APPROVAL' }]);
-    
-    if (booking.rulesAcknowledged) {
-        setGuestProfile(prev => ({ ...prev, safetyPledgeAccepted: true }));
-    }
-
-    addAuditLog('BOOKING_CONFIRMED', `Booking created for ${selectedListing?.title}. Status: PENDING_APPROVAL`);
     navigate('CONFIRMED');
   };
 
-  const handleUpdateTripStatus = (id: string, newStatus: BookingState['status'], reason?: string, role?: UserRole) => {
-    setMyTrips(prev => prev.map(t => {
-      if (t.id === id) {
-        const updated = { ...t, status: newStatus };
-        if (newStatus === 'DISPUTED') {
-          updated.disputeReason = reason;
-          updated.disputeInitiatedBy = role || userRole;
-          addAuditLog('DISPUTE_REPORTED', `Dispute initiated by ${role || userRole}. Reason: ${reason}`);
-        }
-        return updated;
-      }
-      return t;
-    }));
-    setPendingRequests(prev => prev.map(t => {
-      if (t.id === id) {
-        const updated = { ...t, status: newStatus };
-        if (newStatus === 'DISPUTED') {
-          updated.disputeReason = reason;
-          updated.disputeInitiatedBy = role || userRole;
-        }
-        return updated;
-      }
-      return t;
-    }));
-    if (newStatus !== 'DISPUTED') {
-      addAuditLog('TRIP_STATUS_UPDATE', `Trip ${id} status updated to ${newStatus}`);
-    }
-  };
-
-  const handleSafetyCheck = (id: string, satisfied: boolean) => {
-    if (!satisfied) {
-      handleUpdateTripStatus(id, 'DISPUTED', 'In-stay safety check failed: Guest needs help.', UserRole.GUEST);
-    } else {
-      setMyTrips(prev => prev.map(t => t.id === id ? { ...t, safetyCheckPerformed: true } : t));
-      setPendingRequests(prev => prev.map(t => t.id === id ? { ...t, safetyCheckPerformed: true } : t));
-      addAuditLog('SAFETY_CHECK_PASSED', `Guest confirmed stay is okay for booking ${id}`);
-    }
-  };
-
-  const handleResolveDispute = (id: string, resolution: 'REFUND' | 'PAY_HOST', details: string) => {
-    const finalStatus = resolution === 'REFUND' ? 'CANCELLED' : 'COMPLETED';
-    handleUpdateTripStatus(id, finalStatus);
-    setMyTrips(prev => prev.map(t => t.id === id ? { ...t, disputeResolution: details } : t));
-    setPendingRequests(prev => prev.map(t => t.id === id ? { ...t, disputeResolution: details } : t));
-    addAuditLog('DISPUTE_RESOLVED', `Dispute ${id} resolved: ${resolution}. Note: ${details}`, 'ADMIN-01');
+  const handleUpdateTripStatus = (id: string, newStatus: BookingState['status']) => {
+    setPendingRequests(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+    setMyTrips(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
   };
 
   const handleReleasePayout = (id: string) => {
     setPendingRequests(prev => prev.map(t => t.id === id ? { ...t, status: 'COMPLETED', payoutReleased: true } : t));
-    setMyTrips(prev => prev.map(t => t.id === id ? { ...t, status: 'COMPLETED' } : t));
-    addAuditLog('PAYOUT_RELEASED', `Payout released for booking ${id}`);
   };
 
-  const handleAdminUpdateListing = (id: string, newStatus: HostListingState['status']) => {
-    setMyListings(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    addAuditLog('LISTING_AUDIT', `Listing ${id} updated to ${newStatus}`, 'ADMIN-01');
-  };
-
-  const submitNewListing = () => {
-    const newListing = { 
-      ...hostListing, 
-      id: `LS-${Date.now()}`, 
-      status: 'PENDING_REVIEW' as const,
-      hostName: guestProfile.name,
-      dateSubmitted: new Date().toISOString().split('T')[0]
-    };
-    setMyListings(prev => [...prev, newListing]);
-    addAuditLog('LISTING_SUBMITTED', `New listing submitted by ${guestProfile.name}`);
-    navigate('HOST_STATUS');
-  };
-
-  const handleSubmitReview = (tripId: string, role: UserRole, review: StructuredReview) => {
-    setMyTrips(prev => prev.map(t => {
-      if (t.id === tripId) {
-        return role === UserRole.GUEST 
-          ? { ...t, guestReview: review } 
-          : { ...t, hostReview: review };
-      }
-      return t;
-    }));
-    setPendingRequests(prev => prev.map(t => {
-      if (t.id === tripId) {
-        return role === UserRole.GUEST 
-          ? { ...t, guestReview: review } 
-          : { ...t, hostReview: review };
-      }
-      return t;
-    }));
-    
-    addAuditLog('REVIEW_SUBMITTED', `Structured review submitted for ${tripId} by ${role}`);
-
-    if (role === UserRole.HOST) {
-        setGuestProfile(prev => ({
-            ...prev,
-            completedStays: prev.completedStays + 1,
-            hostRecommendationRate: review.q1 ? 100 : Math.max(0, prev.hostRecommendationRate - 20)
-        }));
-    }
-
+  const handleReviewSubmit = (review: StructuredReview) => {
+    if (!activeReviewTrip) return;
+    setMyTrips(prev => prev.map(t => t.id === activeReviewTrip ? { ...t, guestReview: review } : t));
+    setActiveReviewTrip(null);
     goBack();
+  };
+
+  const onSetRole = (role: UserRole) => {
+    setUserRole(role);
+    if (role === UserRole.ADMIN) setHasAdminRights(true);
+    if (role === UserRole.GUEST) setCurrentView('HOME');
+    if (role === UserRole.HOST) setCurrentView('HOST_DASHBOARD');
+    setIsRoleMenuOpen(false);
   };
 
   const renderView = () => {
     switch (currentView) {
       case 'HOME':
-        return (
-          <HomeView 
-            role={userRole} 
-            onSetRole={onSetRole} 
-            onSearch={() => navigate('SEARCH')} 
-            onSelectListing={handleSelectListing}
-            onHostStart={() => {
-              if (guestProfile.verificationLevel < 2) {
-                navigate('TRUST_OVERVIEW');
-              } else {
-                navigate('HOST_WELCOME');
-              }
-            }} 
-          />
-        );
+        return <HomeView role={userRole} onSetRole={onSetRole} onSearch={() => navigate('SEARCH')} onSelectListing={handleSelectListing} onHostStart={() => navigate('HOST_WELCOME')} />;
       case 'TRUST_OVERVIEW':
         return <TrustOverviewView onContinue={() => navigate('GUEST_VERIFICATION')} />;
       case 'SEARCH':
         return <SearchResultsView onSelect={handleSelectListing} listings={MOCK_LISTINGS} />;
       case 'DETAIL':
-        return selectedListing ? (
-          <ListingDetailView 
-            listing={selectedListing} 
-            isSaved={wishlistIds.includes(selectedListing.id)}
-            isLiked={likedIds.includes(selectedListing.id)}
-            onToggleSave={() => toggleWishlist(selectedListing.id)}
-            onToggleLike={() => toggleLike(selectedListing.id)}
-            onBook={() => navigate('BOOKING_DATES')} 
-          />
-        ) : null;
+        return selectedListing ? <ListingDetailView listing={selectedListing} isSaved={wishlistIds.includes(selectedListing.id)} isLiked={likedIds.has(selectedListing.id)} onToggleSave={() => toggleWishlist(selectedListing.id)} onToggleLike={() => toggleLike(selectedListing.id)} onBook={() => navigate('BOOKING_DATES')} /> : null;
       case 'WISHLIST':
-        return (
-          <WishlistView 
-            listings={MOCK_LISTINGS.filter(l => wishlistIds.includes(l.id))}
-            onSelect={handleSelectListing}
-            onToggleSave={toggleWishlist}
-            onExplore={() => navigate('HOME')}
-          />
-        );
+        return <WishlistView listings={MOCK_LISTINGS.filter(l => wishlistIds.includes(l.id))} onSelect={handleSelectListing} onToggleSave={toggleWishlist} onExplore={() => navigate('HOME')} />;
       case 'BOOKING_DATES':
         return <BookingDatesView listing={selectedListing!} booking={booking} onUpdate={updateBooking} onContinue={() => navigate('BOOKING_SUMMARY')} />;
       case 'BOOKING_SUMMARY':
         return <BookingSummaryView listing={selectedListing!} booking={booking} onUpdate={updateBooking} guest={guestProfile} onContinue={(needsVerification) => needsVerification ? navigate('GUEST_VERIFICATION') : navigate('PAYMENT')} onNavigateToVerify={() => navigate('GUEST_VERIFICATION')} />;
       case 'GUEST_VERIFICATION':
-        return <GuestVerificationView guest={guestProfile} onUpdate={setGuestProfile} onComplete={() => history[history.length-1] === 'BOOKING_SUMMARY' ? navigate('PAYMENT') : (history.includes('TRUST_OVERVIEW') ? navigate('HOST_WELCOME') : goBack())} />;
+        return <GuestVerificationView guest={guestProfile} onUpdate={setGuestProfile} onComplete={() => goBack()} />;
       case 'PAYMENT':
-        return <PaymentMethodView onSelect={(method) => { updateBooking({ paymentMethod: method }); startPaymentFlow(); }} />;
+        return <PaymentMethodView onSelect={(method) => { updateBooking({ paymentMethod: method }); navigate('PROCESSING'); }} />;
       case 'PROCESSING':
         return <ProcessingView onFinish={finalizeBooking} />;
       case 'CONFIRMED':
         return <ConfirmationView listing={selectedListing!} booking={booking} onHome={() => navigate('HOME')} />;
-      
-      // Dashboards
       case 'GUEST_TRIPS':
-        return (
-            <GuestTripsView 
-                trips={myTrips} 
-                onExplore={() => navigate('HOME')} 
-                onUpdateStatus={(id, status) => {
-                  if (status === 'DISPUTED') {
-                    const reason = prompt("Describe the issue:");
-                    if (reason) handleUpdateTripStatus(id, status, reason, UserRole.GUEST);
-                  } else {
-                    handleUpdateTripStatus(id, status);
-                  }
-                }}
-                onReview={(id) => { setActiveReviewTrip(id); navigate('REVIEW_STAY'); }}
-                onSafetyCheck={handleSafetyCheck}
-            />
-        );
+        return <GuestTripsView trips={myTrips} onExplore={() => navigate('HOME')} onUpdateStatus={handleUpdateTripStatus} onReview={(id) => { setActiveReviewTrip(id); navigate('REVIEW_STAY'); }} onSafetyCheck={() => {}} />;
       case 'PROFILE':
         return <ProfileView guest={guestProfile} onSetRole={onSetRole} currentRole={userRole} onVerify={() => navigate('GUEST_VERIFICATION')} />;
       case 'HOST_DASHBOARD':
-        return (
-          <HostDashboard 
-            listings={myListings} 
-            requests={pendingRequests} 
-            onUpdateStatus={(id, status) => {
-              if (status === 'DISPUTED') {
-                const reason = prompt("Describe the issue:");
-                if (reason) handleUpdateTripStatus(id, status, reason, UserRole.HOST);
-              } else {
-                handleUpdateTripStatus(id, status);
-              }
-            }}
-            onReleasePayout={handleReleasePayout}
-            onReviewGuest={(id) => { setActiveReviewTrip(id); navigate('REVIEW_STAY'); }}
-          />
-        );
-      case 'VERIFIER_DASHBOARD':
-        return <VerifierDashboard listings={MOCK_LISTINGS} />;
-      case 'ADMIN_DASHBOARD':
-        return (
-          <AdminDashboard 
-            listings={MOCK_LISTINGS} 
-            trips={myTrips} 
-            requests={pendingRequests} 
-            onUpdateStatus={handleUpdateTripStatus} 
-          />
-        );
-      case 'ADMIN_PANEL':
-        return (
-          <AdminPanel 
-            listings={MOCK_LISTINGS}
-            hostListings={myListings}
-            bookings={pendingRequests}
-            auditLogs={auditLogs}
-            onUpdateBooking={handleUpdateTripStatus}
-            onResolveDispute={handleResolveDispute}
-            onUpdateListing={handleAdminUpdateListing}
-            onHome={() => navigate('HOME')}
-          />
-        );
-
-      // Review System
-      case 'REVIEW_STAY':
-        const trip = [...myTrips, ...pendingRequests].find(t => t.id === activeReviewTrip);
-        return trip ? <ReviewStayView trip={trip} role={userRole} onSubmit={(rev) => handleSubmitReview(activeReviewTrip!, userRole, rev)} /> : null;
-
-      // Host Wizard
+        return <HostDashboard listings={myListings} requests={pendingRequests} onUpdateStatus={handleUpdateTripStatus} onReleasePayout={handleReleasePayout} onReviewGuest={(id) => { setActiveReviewTrip(id); navigate('REVIEW_STAY'); }} onStartListing={() => navigate('HOST_WELCOME')} />;
       case 'HOST_WELCOME':
         return <HostWelcome onStart={() => navigate('HOST_TYPE')} />;
       case 'HOST_TYPE':
@@ -446,65 +306,48 @@ const App: React.FC = () => {
       case 'HOST_PRICING':
         return <PricingAvailability state={hostListing} onUpdate={updateHostListing} onContinue={() => navigate('HOST_VERIFICATION')} />;
       case 'HOST_VERIFICATION':
-        return <VerificationMethod state={hostListing} onUpdate={updateHostListing} onSubmit={submitNewListing} />;
+        return <VerificationMethod state={hostListing} onUpdate={updateHostListing} onSubmit={() => {
+            setMyListings(prev => [...prev, { ...hostListing, status: 'APPROVED', id: `LS-${Date.now()}`, hostName: guestProfile.name }]);
+            navigate('HOST_STATUS');
+        }} />;
       case 'HOST_STATUS':
         return <SubmissionStatus onHome={() => navigate('HOME')} />;
-      
+      case 'REVIEW_STAY':
+        const trip = [...myTrips, ...pendingRequests].find(t => t.id === activeReviewTrip);
+        return trip ? <ReviewStayView trip={trip} role={userRole} onSubmit={handleReviewSubmit} /> : null;
       default:
         return <HomeView role={userRole} onSetRole={onSetRole} onSearch={() => navigate('SEARCH')} onSelectListing={handleSelectListing} onHostStart={() => navigate('HOST_WELCOME')} />;
     }
-  };
-
-  const onSetRole = (role: UserRole) => {
-    setUserRole(role);
   };
 
   const getTitle = () => {
     if (currentView.startsWith('HOST_')) return 'Welcome Home, Host';
     switch (currentView) {
       case 'HOME': return 'Wacu';
-      case 'SEARCH': return 'Explore Our Places';
-      case 'DETAIL': return 'Property Details';
-      case 'WISHLIST': return 'My Secret Collection';
+      case 'SEARCH': return 'Explore';
+      case 'DETAIL': return 'Wacu Details';
       case 'GUEST_TRIPS': return 'My Trips';
       case 'PROFILE': return 'My Trust Profile';
-      case 'HOST_DASHBOARD': return 'Wacu Host Hub';
-      case 'VERIFIER_DASHBOARD': return 'Trust Queue';
-      case 'ADMIN_DASHBOARD': return 'Wacu Admin';
-      case 'ADMIN_PANEL': return 'Wacu Management';
-      case 'GUEST_VERIFICATION': return 'Identity & Trust';
-      case 'REVIEW_STAY': return 'Review Stay';
-      case 'TRUST_OVERVIEW': return 'Wacu Trust System';
+      case 'HOST_DASHBOARD': return 'Hosting Hub';
+      case 'WISHLIST': return 'Wishlist';
       default: return 'Wacu';
     }
   };
 
-  const showBottomNav = ['HOME', 'SEARCH', 'GUEST_TRIPS', 'PROFILE', 'HOST_DASHBOARD', 'VERIFIER_DASHBOARD', 'ADMIN_DASHBOARD', 'WISHLIST'].includes(currentView);
-  const isWebPanel = currentView === 'ADMIN_PANEL';
+  const showBottomNav = ['HOME', 'SEARCH', 'GUEST_TRIPS', 'PROFILE', 'HOST_DASHBOARD', 'WISHLIST'].includes(currentView);
 
   return (
     <Layout 
       title={getTitle()} 
-      onBack={currentView !== 'HOME' && currentView !== 'CONFIRMED' && currentView !== 'HOST_STATUS' ? goBack : undefined}
-      hideHeader={currentView === 'HOME' || currentView === 'PROCESSING' || isWebPanel || currentView === 'TRUST_OVERVIEW'}
-      fullWidth={isWebPanel}
+      onBack={currentView !== 'HOME' ? goBack : undefined}
+      hideHeader={['HOME', 'PROCESSING'].includes(currentView)}
+      rightContent={hasAdminRights ? <button onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)} className="p-2">👁️</button> : null}
     >
       <div className={`flex-1 ${showBottomNav ? 'pb-20' : ''}`}>
         {renderView()}
       </div>
       {showBottomNav && (
-        <BottomNav 
-          currentView={currentView} 
-          role={userRole} 
-          onNavigate={(view) => {
-             setHistory([]);
-             if (view === 'ADMIN_DASHBOARD' && userRole === UserRole.ADMIN) {
-               setCurrentView('ADMIN_PANEL');
-             } else {
-               setCurrentView(view);
-             }
-          }} 
-        />
+        <BottomNav currentView={currentView} role={userRole} onNavigate={(view) => setCurrentView(view)} />
       )}
     </Layout>
   );
