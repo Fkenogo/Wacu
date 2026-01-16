@@ -191,7 +191,7 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
               isHowInvalid ? 'border-red-400 focus:border-red-500 bg-red-50/20 ring-4 ring-red-400/5' : 'border-gray-100 focus:border-amber-400 shadow-sm'
             }`}
           />
-          {isHowInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Help guests find their next adventure!</p>}
+          {isHowInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Help guests find their next stay!</p>}
         </div>
       </div>
 

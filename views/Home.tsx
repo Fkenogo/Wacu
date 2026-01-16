@@ -40,8 +40,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ role, onSetRole, onSearch, o
             🔍
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-slate-900">Discover a Wacu to call yours</p>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Wacu Magic Awaits • Any Week • Add Guests</p>
+            <p className="text-sm font-bold text-slate-900">Yambi. Discover a Wacu to call yours</p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Find Hosts  • Receive Guests</p>
           </div>
         </div>
       </div>

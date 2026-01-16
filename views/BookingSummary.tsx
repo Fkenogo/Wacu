@@ -1,7 +1,8 @@
 
-import React from 'react';
-import { Listing, BookingState, GuestProfile, PropertyType, TrustBadge } from '../types';
-import { TrustBadgeItem } from '../components/TrustComponents';
+import React, { useState } from 'react';
+import { Listing, BookingState, GuestProfile, PropertyType } from '../types';
+import { TrustBadgeItem, TrustTooltip } from '../components/TrustComponents';
+import { HOUSE_RULES_TOOLTIPS } from '../constants';
 
 interface BookingSummaryViewProps {
   listing: Listing;
@@ -13,6 +14,7 @@ interface BookingSummaryViewProps {
 }
 
 export const BookingSummaryView: React.FC<BookingSummaryViewProps> = ({ listing, booking, guest, onUpdate, onContinue, onNavigateToVerify }) => {
+  const [showFullRules, setShowFullRules] = useState(false);
   const nights = booking.startDate && booking.endDate 
     ? Math.max(1, Math.ceil((new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime()) / (1000 * 3600 * 24)))
     : 1;
@@ -21,16 +23,14 @@ export const BookingSummaryView: React.FC<BookingSummaryViewProps> = ({ listing,
   const serviceFee = 2000;
   const total = basePrice + serviceFee;
 
-  // SYSTEM TRUST RULES
   const isHighRiskType = listing.type === PropertyType.FAMILY_HOMESTAY || listing.type === PropertyType.SHARED_HOME;
-  
   const hasPhoneBadge = guest.badges.includes('Contact Verified');
   const hasIdentityBadge = guest.badges.includes('Identity Verified');
-  
   const meetBaseTrust = hasPhoneBadge && hasIdentityBadge;
   const trustBlocked = isHighRiskType && !meetBaseTrust && !booking.adminTrustOverride;
-
   const needsLevel2 = (isHighRiskType || nights > 5 || (booking.adults + booking.children) > 3) && guest.verificationLevel < 2;
+
+  const activeRules = listing.rules.filter(r => r.enabled);
 
   return (
     <div className="p-6 flex flex-col space-y-6 animate-fadeIn pb-24 h-full overflow-y-auto no-scrollbar">
@@ -48,7 +48,7 @@ export const BookingSummaryView: React.FC<BookingSummaryViewProps> = ({ listing,
         </div>
       </div>
 
-      {/* Host Credentials (Guest View) */}
+      {/* Host Credentials */}
       <div className="bg-slate-900 rounded-[2rem] p-6 text-white space-y-4 shadow-xl">
         <div className="flex items-center gap-3">
           <img src={listing.hostAvatar} className="w-10 h-10 rounded-full border-2 border-white/20" alt="Host" />
@@ -64,59 +64,60 @@ export const BookingSummaryView: React.FC<BookingSummaryViewProps> = ({ listing,
         </div>
       </div>
 
-      {/* Trust Constraint Block */}
-      <div className="bg-red-50 border-2 border-red-100 rounded-[2.5rem] p-6 space-y-4 shadow-sm animate-fadeIn">
-        <div className="flex items-start gap-4">
-           <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-xl shrink-0">🚫</div>
-           <div className="space-y-1">
-             <h4 className="text-sm font-black text-red-900 uppercase">Wacu Protocol Incomplete</h4>
-             <p className="text-xs text-red-800 font-medium leading-relaxed">
-               As this is a <strong>{listing.type}</strong>, we require guests to have a verified identity footprint to join our Wacu family.
-             </p>
-           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 pt-2">
-           <button 
-              onClick={onNavigateToVerify}
-              className={`flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${hasPhoneBadge ? 'bg-white border-emerald-100 text-emerald-600' : 'bg-white border-red-100 text-slate-600 active:scale-95 shadow-sm'}`}
-           >
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-widest">Contact Verified</span>
-              </div>
-              <span className="font-black">{hasPhoneBadge ? '✓' : '!'}</span>
-           </button>
-           
-           <button 
-              onClick={onNavigateToVerify}
-              className={`flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${hasIdentityBadge ? 'bg-white border-emerald-100 text-emerald-600' : 'bg-white border-red-100 text-slate-600 active:scale-95 shadow-sm'}`}
-           >
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-widest">Identity Verified</span>
-              </div>
-              <span className="font-black">{hasIdentityBadge ? '✓' : '!'}</span>
-           </button>
-        </div>
-      </div>
-
       {/* Rules & Safety Pledge */}
       <div className="space-y-4">
         <h3 className="text-xl font-black text-slate-900">Safety & Rules</h3>
         <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Wacu Community Rules</h4>
-              <span className="text-[8px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">Pledge Required</span>
+              <div className="flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">House Rules Summary</h4>
+                <TrustTooltip title={HOUSE_RULES_TOOLTIPS.general.title} text={HOUSE_RULES_TOOLTIPS.general.text}>
+                  <span className="text-amber-500 text-[10px] font-black">ⓘ</span>
+                </TrustTooltip>
+              </div>
+              <button 
+                onClick={() => setShowFullRules(!showFullRules)}
+                className="text-[8px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-full uppercase tracking-tighter"
+              >
+                {showFullRules ? 'Hide Details' : 'View Full Rules'}
+              </button>
             </div>
+            
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-xs">🚭</span>
-                <span className="text-xs font-medium text-slate-700">No smoking inside the Wacu</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-xs">🔇</span>
-                <span className="text-xs font-medium text-slate-700">Respect the neighborhood (10PM Curfew)</span>
-              </div>
+              {activeRules.slice(0, 3).map(rule => (
+                <div key={rule.id} className="flex items-start gap-3">
+                  <span className="text-xs">📜</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold text-slate-700">{rule.label}</p>
+                      {HOUSE_RULES_TOOLTIPS[rule.id] && (
+                        <TrustTooltip title={HOUSE_RULES_TOOLTIPS[rule.id].title} text={HOUSE_RULES_TOOLTIPS[rule.id].text}>
+                          <span className="text-amber-500 text-[8px] font-black">ⓘ</span>
+                        </TrustTooltip>
+                      )}
+                    </div>
+                    {showFullRules && rule.note && <p className="text-[9px] text-slate-400 mt-0.5">{rule.note}</p>}
+                  </div>
+                </div>
+              ))}
+              {activeRules.length > 3 && !showFullRules && (
+                <p className="text-[9px] font-bold text-slate-300 ml-7">+ {activeRules.length - 3} more rules...</p>
+              )}
             </div>
+          </div>
+
+          {/* Guest Request Field */}
+          <div className="space-y-2 pt-4 border-t border-gray-50">
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Guest request (optional)</label>
+            <textarea 
+              value={booking.guestRequest}
+              onChange={(e) => onUpdate({ guestRequest: e.target.value })}
+              maxLength={200}
+              placeholder="Short note for the host..."
+              className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-medium outline-none focus:ring-1 focus:ring-amber-300 resize-none"
+              rows={2}
+            />
           </div>
 
           <div className="pt-4 border-t border-gray-50 flex items-start gap-4">
@@ -131,16 +132,25 @@ export const BookingSummaryView: React.FC<BookingSummaryViewProps> = ({ listing,
              <div className="space-y-1">
                <p className="text-[10px] font-bold text-slate-900 uppercase tracking-tighter">Wacu Community Pledge</p>
                <p className="text-[9px] text-slate-400 leading-tight">
-                 I agree to treat this home as Wacu (our place) and follow all community guidelines.
+                 I have read and agree to the house rules. By booking you confirm you can comply with these rules.
                </p>
              </div>
           </div>
         </div>
       </div>
 
+      {/* Price details */}
       <div className="space-y-4">
         <h3 className="text-xl font-black text-slate-900">Price details</h3>
         <div className="space-y-3 bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm text-sm">
+          <div className="flex justify-between items-center text-slate-600">
+            <span>{listing.pricePerNight.toLocaleString()} RWF x {nights} nights</span>
+            <span>{basePrice.toLocaleString()} RWF</span>
+          </div>
+          <div className="flex justify-between items-center text-slate-600">
+            <span>Service fee</span>
+            <span>{serviceFee.toLocaleString()} RWF</span>
+          </div>
           <div className="flex justify-between pt-4 border-t border-gray-100 text-base">
             <span className="font-black text-slate-900">Total (RWF)</span>
             <span className="font-black text-slate-900 text-lg">{total.toLocaleString()} RWF</span>

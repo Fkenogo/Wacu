@@ -14,15 +14,15 @@ export const WishlistView: React.FC<WishlistViewProps> = ({ listings, onSelect, 
     <div className="p-6 space-y-8 animate-fadeIn h-full overflow-y-auto no-scrollbar pb-24">
       <div className="space-y-1">
         <h2 className="text-3xl font-black text-slate-900 leading-tight">Your Secret Collection</h2>
-        <p className="text-slate-500 text-sm font-medium">Gems you've discovered for your next escape.</p>
+        <p className="text-slate-500 text-sm font-medium">Wacus you've discovered for your next stay.</p>
       </div>
 
       {listings.length === 0 ? (
         <div className="py-20 flex flex-col items-center text-center space-y-6">
           <div className="w-24 h-24 bg-rose-50 rounded-[2.5rem] flex items-center justify-center text-5xl">❤️</div>
           <div className="space-y-2 px-6">
-            <h3 className="font-black text-slate-800 text-lg">No Gems Found Yet!</h3>
-            <p className="text-sm text-gray-400 leading-relaxed">The best stays go fast. Start hunting and heart the ones you love.</p>
+            <h3 className="font-black text-slate-800 text-lg">No Wacus Found Yet!</h3>
+            <p className="text-sm text-gray-400 leading-relaxed">The best stays go fast. Start hunting and heart the Wacus you love.</p>
           </div>
           <button 
             onClick={onExplore}

@@ -35,7 +35,8 @@ export type TrustBadge =
   | 'Active Host'
   | 'Active Guest'
   | 'Community Trusted'
-  | 'Safety Pledge';
+  | 'Safety Pledge'
+  | 'Elite Voucher';
 
 export interface GuestProfile {
   name: string;
@@ -44,11 +45,13 @@ export interface GuestProfile {
   phone: string;
   isPhoneVerified: boolean;
   verificationLevel: 1 | 2 | 3;
+  trustPoints: number;
   badges: TrustBadge[];
   completedStays: number;
-  hostRecommendationRate: number; // 0-100%
+  hostRecommendationRate: number;
   identityDocumentStored: boolean;
   safetyPledgeAccepted: boolean;
+  referralCount: number;
   communityReference?: {
     name: string;
     phone: string;
@@ -56,20 +59,33 @@ export interface GuestProfile {
   };
 }
 
-export interface AuditEntry {
+export interface HouseRule {
   id: string;
-  timestamp: string;
-  userId: string;
-  userName: string;
-  action: string;
-  details: string;
-  adminId?: string;
+  category: string;
+  label: string;
+  enabled: boolean;
+  note?: string;
+  meta?: {
+    time?: string;
+    endTime?: string;
+    amount?: number;
+    count?: number;
+    options?: string[];
+  };
 }
 
 export interface Amenity {
   id: string;
   name: string;
   icon: string;
+  category: string;
+}
+
+export interface AmenityCategory {
+  id: string;
+  name: string;
+  icon: string;
+  amenities: Amenity[];
 }
 
 export interface Review {
@@ -80,15 +96,15 @@ export interface Review {
   comment: string;
   date: string;
   likes?: number;
-  replies?: Review[]; // For threaded community engagement
+  replies?: Review[];
 }
 
 export interface StructuredReview {
   submitted: boolean;
   timestamp?: string;
-  q1: boolean; // Guest: Felt safe? | Host: Host again?
-  q2: boolean; // Guest: Accurate?  | Host: Respected rules?
-  q3: boolean; // Guest: Stay again? | Host: Safety concerns?
+  q1: boolean;
+  q2: boolean;
+  q3: boolean;
   comment?: string;
 }
 
@@ -111,6 +127,7 @@ export interface Listing {
   what3words: string;
   howToGetThere: string;
   amenities: Amenity[];
+  rules: HouseRule[];
   rating: number;
   reviewCount: number;
   reviews?: Review[];
@@ -118,7 +135,6 @@ export interface Listing {
     lat: number;
     lng: number;
   };
-  // Host Profile Details
   hostBio?: string;
   hostJoinDate?: string;
   hostLanguages?: string[];
@@ -140,13 +156,27 @@ export interface Listing {
   isLiked?: boolean;
   isSaved?: boolean;
   sharesCount: number;
-  legacyCategory?: string;
   needsMigrationReview?: boolean;
+  paymentMethodType?: 'MERCHANT_CODE' | 'PHONE_NUMBER';
+  paymentIdentifier?: string;
+  commissionConsent?: boolean;
+  // Future Flags
+  escrowEnabled?: boolean; 
+}
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  timestamp: string;
+  details: string;
+  bookingId?: string;
+  raisedBy?: 'GUEST' | 'HOST' | 'SYSTEM';
 }
 
 export interface BookingState {
   id?: string;
   listingId: string | null;
+  listingTitle?: string; // Cache for dashboard
   guestName?: string;
   guestProfile?: GuestProfile;
   hostName?: string;
@@ -161,13 +191,27 @@ export interface BookingState {
   dateSubmitted?: string;
   purposeOfStay?: 'Tourism' | 'Work' | 'Family' | 'Event';
   rulesAcknowledged: boolean;
+  guestRequest?: string;
   guestReview?: StructuredReview;
   hostReview?: StructuredReview;
   safetyCheckPerformed?: boolean;
-  disputeReason?: string;
-  disputeResolution?: string;
-  disputeInitiatedBy?: UserRole;
   adminTrustOverride?: boolean;
+  disputeReason?: string;
+  
+  // Phase 1 Payment Tracking
+  guestPaymentMarked?: boolean;
+  hostPaymentConfirmed?: boolean;
+  hostConfirmationDate?: string;
+  expectedCommission?: number;
+  commissionMarkedSent?: boolean;
+  commissionRemittanceNote?: string;
+  
+  // Dispute Flow Details
+  disputeProofText?: string;
+  disputeProofImage?: string;
+  hostDisputeResponse?: 'NOT_RECEIVED' | 'RECEIVED_LATER';
+  hostDisputeNote?: string;
+  adminResolutionOutcome?: 'PAID' | 'NOT_PAID' | 'INCONCLUSIVE';
 }
 
 export interface HostListingState {
@@ -185,24 +229,29 @@ export interface HostListingState {
   locationDescription: string;
   what3words: string;
   amenities: string[];
-  rules: {
-    smoking: boolean;
-    pets: boolean;
-    curfew: boolean;
-  };
+  rules: HouseRule[];
   photos: string[];
   pricePerNight: number;
   weeklyDiscount: boolean;
   availability: 'Always' | 'Select';
   verificationMethod: 'Vouch' | 'Video' | 'ID' | null;
   verificationCompleted: ('Phone' | 'Property' | 'Vouch' | 'Video' | 'ID')[];
+  vouchDetails?: {
+    name: string;
+    phone: string;
+    profileLink?: string;
+    isExistingHost?: boolean;
+  };
   status: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
   hostName?: string;
   dateSubmitted?: string;
-  legacyCategory?: string;
+  paymentMethodType?: 'MERCHANT_CODE' | 'PHONE_NUMBER';
+  paymentIdentifier?: string;
+  commissionConsent?: boolean;
 }
 
 export type View = 
+  | 'ONBOARDING'
   | 'HOME' 
   | 'SEARCH' 
   | 'DETAIL' 
@@ -211,9 +260,13 @@ export type View =
   | 'BOOKING_SUMMARY' 
   | 'GUEST_VERIFICATION'
   | 'PAYMENT' 
+  | 'GUEST_PAYMENT_EDUCATION'
+  | 'HOST_PAYMENT_EDUCATION'
+  | 'PAYMENTS_POLICY'
+  | 'FAQS'
   | 'PROCESSING' 
   | 'CONFIRMED' 
-  | 'GUEST_TRIPS' 
+  | 'GUEST_STAYS' 
   | 'PROFILE' 
   | 'HOST_DASHBOARD' 
   | 'VERIFIER_DASHBOARD' 
@@ -227,7 +280,9 @@ export type View =
   | 'HOST_AMENITIES' 
   | 'HOST_PHOTOS' 
   | 'HOST_PRICING' 
+  | 'HOST_PAYMENT_SETUP'
   | 'HOST_VERIFICATION' 
   | 'HOST_STATUS' 
   | 'REVIEW_STAY'
-  | 'TRUST_OVERVIEW';
+  | 'TRUST_OVERVIEW'
+  | 'REFERRAL_DASHBOARD';

@@ -6,6 +6,10 @@ import { AMENITIES, LISTING_TAGS, CATEGORY_DESCRIPTIONS, CATEGORY_ICONS } from '
 interface SearchResultsViewProps {
   listings: Listing[];
   onSelect: (listing: Listing) => void;
+  wishlistIds: string[];
+  onToggleWishlist: (id: string) => void;
+  likedIds: Set<string>;
+  onToggleLike: (id: string) => void;
 }
 
 interface FilterState {
@@ -17,11 +21,10 @@ interface FilterState {
   minBathrooms: number;
   petFriendly: boolean;
   sortBy: 'price_asc' | 'rating_desc' | 'near_me';
+  quickFilters: ('work' | 'family' | 'power_water' | 'safety')[];
 }
 
-export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, onSelect }) => {
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, onSelect, wishlistIds, onToggleWishlist, likedIds, onToggleLike }) => {
   const [showFilters, setShowFilters] = useState(false);
   
   const [filters, setFilters] = useState<FilterState>({
@@ -32,24 +35,9 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
     groupSize: 1,
     minBathrooms: 1,
     petFriendly: false,
-    sortBy: 'rating_desc'
+    sortBy: 'rating_desc',
+    quickFilters: []
   });
-
-  const toggleSave = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const newSaved = new Set(savedIds);
-    if (newSaved.has(id)) newSaved.delete(id);
-    else newSaved.add(id);
-    setSavedIds(newSaved);
-  };
-
-  const toggleLike = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const newLiked = new Set(likedIds);
-    if (newLiked.has(id)) newLiked.delete(id);
-    else newLiked.add(id);
-    setLikedIds(newLiked);
-  };
 
   const filteredListings = useMemo(() => {
     let result = listings.filter(l => {
@@ -60,7 +48,23 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
       const petsMatch = !filters.petFriendly || l.petFriendly;
       const amenitiesMatch = filters.amenities.every(id => l.amenities.some(a => a.id === id));
       const tagsMatch = filters.tags.every(tag => l.tags.includes(tag));
-      return typeMatch && priceMatch && capacityMatch && bathroomsMatch && petsMatch && amenitiesMatch && tagsMatch;
+
+      // Quick Filters logic
+      let quickMatch = true;
+      if (filters.quickFilters.includes('work')) {
+        quickMatch = quickMatch && l.amenities.some(a => ['wifi', 'workspace', 'desk_chair'].includes(a.id));
+      }
+      if (filters.quickFilters.includes('family')) {
+        quickMatch = quickMatch && (l.tags.includes('Family-friendly') || l.amenities.some(a => ['children_allowed', 'baby_cot'].includes(a.id)));
+      }
+      if (filters.quickFilters.includes('power_water')) {
+        quickMatch = quickMatch && l.amenities.some(a => ['grid_power', 'solar', 'running_water', 'water_tank'].includes(a.id));
+      }
+      if (filters.quickFilters.includes('safety')) {
+        quickMatch = quickMatch && l.amenities.some(a => ['security', 'night_guard', 'gated', 'lockable_room'].includes(a.id));
+      }
+
+      return typeMatch && priceMatch && capacityMatch && bathroomsMatch && petsMatch && amenitiesMatch && tagsMatch && quickMatch;
     });
 
     if (filters.sortBy === 'price_asc') {
@@ -78,7 +82,15 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
                             (filters.maxPrice < 100000 ? 1 : 0) +
                             (filters.minBathrooms > 1 ? 1 : 0) +
                             (filters.groupSize > 1 ? 1 : 0) +
-                            (filters.petFriendly ? 1 : 0);
+                            (filters.petFriendly ? 1 : 0) +
+                            filters.quickFilters.length;
+
+  const toggleQuickFilter = (id: 'work' | 'family' | 'power_water' | 'safety') => {
+    setFilters(f => ({
+      ...f,
+      quickFilters: f.quickFilters.includes(id) ? f.quickFilters.filter(x => x !== id) : [...f.quickFilters, id]
+    }));
+  };
 
   const selectedCategory = filters.types.length === 1 ? filters.types[0] : null;
 
@@ -87,9 +99,9 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
       <div className="p-4 space-y-4 sticky top-0 bg-gray-50/90 backdrop-blur-md z-30 border-b border-gray-100">
         <div className="flex justify-between items-center px-1">
           <div className="flex flex-col">
-            <span className="font-bold text-slate-900 text-lg">Exploration</span>
+            <span className="font-bold text-slate-900 text-lg">Wacu Hunting</span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {filteredListings.length} results available
+              {filteredListings.length} Wacus found
             </span>
           </div>
           <div className="flex gap-2">
@@ -102,20 +114,21 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
           </div>
         </div>
 
-        {/* Quick Type Filter Pills */}
+        {/* Quick Requirement Filters */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-          {Object.values(PropertyType).map(type => (
+          {[
+            { id: 'work', label: 'Work-Friendly', icon: '💻' },
+            { id: 'family', label: 'Family-Friendly', icon: '👨‍👩‍👧' },
+            { id: 'power_water', label: 'Power & Water', icon: '⚡' },
+            { id: 'safety', label: 'Security & Safety', icon: '🛡️' }
+          ].map(qf => (
             <button
-              key={type}
-              onClick={() => {
-                setFilters(f => ({
-                  ...f,
-                  types: f.types.includes(type) ? [] : [type]
-                }));
-              }}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${filters.types.includes(type) ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-gray-200 text-gray-500'}`}
+              key={qf.id}
+              onClick={() => toggleQuickFilter(qf.id as any)}
+              className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${filters.quickFilters.includes(qf.id as any) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-gray-100 text-slate-500'}`}
             >
-              {type}
+              <span>{qf.icon}</span>
+              <span>{qf.label}</span>
             </button>
           ))}
         </div>
@@ -143,12 +156,14 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
         )}
 
         {filteredListings.length === 0 ? (
-          <div className="py-20 text-center space-y-4">
-             <span className="text-5xl">🌍</span>
-             <p className="text-slate-400 font-medium">No stays match your criteria.</p>
+          <div className="py-20 text-center space-y-6">
+             <div className="space-y-2">
+                <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Yambi.</h3>
+                <p className="text-slate-400 font-medium">No Wacus match your filters yet.</p>
+             </div>
              <button 
-                onClick={() => setFilters({ types: [], amenities: [], tags: [], maxPrice: 100000, groupSize: 1, minBathrooms: 1, petFriendly: false, sortBy: 'rating_desc' })}
-                className="text-amber-600 font-black text-xs uppercase tracking-widest underline"
+                onClick={() => setFilters({ types: [], amenities: [], tags: [], maxPrice: 100000, groupSize: 1, minBathrooms: 1, petFriendly: false, sortBy: 'rating_desc', quickFilters: [] })}
+                className="bg-slate-900 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
              >
                 Reset all filters
              </button>
@@ -169,12 +184,12 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
                 />
                 
                 <button 
-                  onClick={(e) => toggleSave(e, listing.id)}
+                  onClick={(e) => { e.stopPropagation(); onToggleWishlist(listing.id); }}
                   className="absolute top-5 right-5 p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-md z-10"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className={`h-5 w-5 ${savedIds.has(listing.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} 
+                    className={`h-5 w-5 ${wishlistIds.includes(listing.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} 
                     viewBox="0 0 24 24" stroke="currentColor" fill="none"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -205,7 +220,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                   <div className="flex items-center gap-4">
                     <button 
-                      onClick={(e) => toggleLike(e, listing.id)}
+                      onClick={(e) => { e.stopPropagation(); onToggleLike(listing.id); }}
                       className="flex items-center gap-1.5"
                     >
                       <span className="text-lg">{likedIds.has(listing.id) ? '❤️' : '🤍'}</span>
@@ -215,9 +230,6 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
                       <span className="text-lg">💬</span>
                       <span className="text-[10px] font-black text-slate-500 uppercase">{listing.reviewCount}</span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                    👤 {listing.capacity} • 🛁 {listing.bathroomCount} • {listing.petFriendly ? '🐶' : '🚫🐶'}
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-amber-500 text-xs">★</span>
@@ -240,7 +252,7 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
             <div className="flex justify-between items-center">
               <h3 className="text-2xl font-black text-slate-900">Filters</h3>
               <button 
-                onClick={() => setFilters({ types: [], amenities: [], tags: [], maxPrice: 100000, groupSize: 1, minBathrooms: 1, petFriendly: false, sortBy: 'rating_desc' })}
+                onClick={() => setFilters({ types: [], amenities: [], tags: [], maxPrice: 100000, groupSize: 1, minBathrooms: 1, petFriendly: false, sortBy: 'rating_desc', quickFilters: [] })}
                 className="text-[10px] font-black text-amber-600 uppercase tracking-widest"
               >
                 Clear all
@@ -285,67 +297,11 @@ export const SearchResultsView: React.FC<SearchResultsViewProps> = ({ listings, 
               />
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Minimum Guest Capacity</h4>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                {[1, 2, 3, 4, 5, 6].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => setFilters(f => ({ ...f, groupSize: num }))}
-                    className={`flex-1 min-w-[50px] py-4 rounded-2xl border-2 font-black transition-all ${
-                      filters.groupSize === num 
-                        ? 'bg-amber-500 border-amber-500 text-white shadow-lg' 
-                        : 'bg-white border-gray-100 text-slate-900 hover:border-gray-200'
-                    }`}
-                  >
-                    {num}{num === 6 ? '+' : ''}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Minimum Bathrooms</h4>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => setFilters(f => ({ ...f, minBathrooms: num }))}
-                    className={`flex-1 py-4 rounded-2xl border-2 font-black transition-all ${
-                      filters.minBathrooms === num 
-                        ? 'bg-amber-500 border-amber-500 text-white shadow-lg' 
-                        : 'bg-white border-gray-100 text-slate-900 hover:border-gray-200'
-                    }`}
-                  >
-                    {num}{num === 4 ? '+' : ''}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-gray-100">
-               <div className="flex items-center gap-4">
-                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm">
-                   🐶
-                 </div>
-                 <div>
-                   <p className="font-bold text-slate-900 text-sm">Pet Friendly</p>
-                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Show pet-safe stays</p>
-                 </div>
-               </div>
-               <button
-                  onClick={() => setFilters(f => ({ ...f, petFriendly: !f.petFriendly }))}
-                  className={`w-14 h-8 rounded-full transition-all relative ${filters.petFriendly ? 'bg-amber-500' : 'bg-gray-200'}`}
-               >
-                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${filters.petFriendly ? 'left-7' : 'left-1'}`} />
-               </button>
-            </div>
-
             <button 
               onClick={() => setShowFilters(false)}
               className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl active:scale-95 transition-all mt-4"
             >
-              Show {filteredListings.length} results
+              Show {filteredListings.length} Wacus
             </button>
           </div>
         </div>

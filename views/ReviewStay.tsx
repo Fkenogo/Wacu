@@ -44,8 +44,8 @@ export const ReviewStayView: React.FC<Props> = ({ trip, role, onSubmit }) => {
     },
     { 
       id: 'q2', 
-      title: 'Wacu Accuracy', 
-      text: 'Were the photos and landmark directions accurate?', 
+      title: 'Amenity Accuracy', 
+      text: 'Were the listed amenities (Power, Water, Wi-Fi) accurate?', 
       icon: '🎯', 
       value: q2, 
       setter: setQ2 
@@ -164,7 +164,7 @@ export const ReviewStayView: React.FC<Props> = ({ trip, role, onSubmit }) => {
           rows={4}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder={isGuest ? "Share details about the hospitality, breakfast, or directions..." : "How was the guest's communication and respect for your Wacu?"}
+          placeholder={isGuest ? "Share details about the hospitality, breakfast, or amenities..." : "How was the guest's communication and respect for your Wacu?"}
           className="w-full px-6 py-6 bg-white border-2 border-gray-100 rounded-[2.5rem] outline-none focus:border-amber-400 font-medium text-sm leading-relaxed shadow-inner"
         />
       </div>

@@ -2,21 +2,23 @@
 import React, { useState } from 'react';
 import { GuestProfile, UserRole, TrustBadge } from '../types';
 import { BADGE_METADATA } from '../constants';
-import { LowTrustBanner, TrustGrowthTooltip, VerificationExplanationTooltip, TrustBadgeItem } from '../components/TrustComponents';
+import { LowTrustBanner, TrustGrowthTooltip, VerificationExplanationTooltip, TrustBadgeSystem } from '../components/TrustComponents';
 
 interface ProfileViewProps {
   guest: GuestProfile;
   currentRole: UserRole;
   onSetRole: (role: UserRole) => void;
   onVerify: () => void;
+  onNavigateReferrals?: () => void;
+  onPaymentsHelp?: () => void;
+  onFAQs?: () => void;
+  onPolicy?: () => void;
 }
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, onSetRole, onVerify }) => {
-  const [showAllBadges, setShowAllBadges] = useState(false);
-
-  const verificationProgress = (guest.verificationLevel / 3) * 100;
-  const displayedBadges = guest.badges.slice(0, 4);
-  const remainingCount = Math.max(0, guest.badges.length - 4);
+export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, onSetRole, onVerify, onNavigateReferrals, onPaymentsHelp, onFAQs, onPolicy }) => {
+  // Trust points now contribute 20% to the total index calculation (cap at 1000 points for full credit)
+  const pointBonus = Math.min(20, (guest.trustPoints / 1000) * 20);
+  const verificationProgress = Math.min(100, ((guest.verificationLevel / 3) * 80) + pointBonus);
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 animate-fadeIn h-full pb-10">
@@ -53,6 +55,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
               style={{ width: `${verificationProgress}%` }}
             />
           </div>
+          <div className="flex justify-between items-center px-1">
+             <p className="text-[8px] font-black text-slate-400 uppercase">Verification Level {guest.verificationLevel}</p>
+             <p className="text-[8px] font-black text-amber-600 uppercase">+{Math.round(pointBonus)}% from Trust Points</p>
+          </div>
           {guest.verificationLevel < 2 && (
             <button 
               onClick={onVerify}
@@ -65,10 +71,53 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
       </div>
 
       <div className="p-6 space-y-6 flex-1 overflow-y-auto no-scrollbar">
+        {/* Referral Entry Card */}
+        <div 
+          onClick={onNavigateReferrals}
+          className="bg-slate-900 rounded-[2.5rem] p-6 text-white relative overflow-hidden shadow-xl active:scale-[0.98] transition-all cursor-pointer group"
+        >
+           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-500 rounded-full blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
+           <div className="flex items-center justify-between relative z-10">
+              <div className="space-y-1">
+                 <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Vouch & Earn</p>
+                 <h4 className="text-lg font-black leading-tight">Refer a Host</h4>
+                 <p className="text-[10px] text-slate-400 font-medium">Earn points to grow your trust level.</p>
+              </div>
+              <div className="bg-white/10 p-3 rounded-2xl flex items-center justify-center text-2xl group-hover:rotate-12 transition-transform">
+                📤
+              </div>
+           </div>
+        </div>
+
         {/* Low Trust Alert Banner */}
         {guest.verificationLevel < 2 && (
           <LowTrustBanner onAction={onVerify} />
         )}
+
+        {/* General Options */}
+        <div className="space-y-2">
+           <button 
+             onClick={onPaymentsHelp}
+             className="w-full flex items-center justify-between p-5 bg-white rounded-3xl border border-gray-100 shadow-sm active:scale-95 transition-all"
+           >
+             <div className="flex items-center gap-4">
+                <span className="text-xl">💰</span>
+                <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Payments Help</span>
+             </div>
+             <span className="text-slate-300">→</span>
+           </button>
+
+           <button 
+             onClick={onFAQs}
+             className="w-full flex items-center justify-between p-5 bg-white rounded-3xl border border-gray-100 shadow-sm active:scale-95 transition-all"
+           >
+             <div className="flex items-center gap-4">
+                <span className="text-xl">❔</span>
+                <span className="text-xs font-black text-slate-900 uppercase tracking-widest">FAQs & Policy</span>
+             </div>
+             <span className="text-slate-300">→</span>
+           </button>
+        </div>
 
         {/* Trust Badges Section */}
         <div className="space-y-4">
@@ -78,27 +127,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
                 Trust & Identity Badges <span className="text-amber-500 text-[8px]">ⓘ</span>
               </h3>
             </TrustGrowthTooltip>
-            {remainingCount > 0 && (
-              <button 
-                onClick={() => setShowAllBadges(true)}
-                className="text-[10px] font-black text-amber-600 uppercase"
-              >
-                View All (+{remainingCount})
-              </button>
-            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {displayedBadges.map(badge => (
-              <TrustBadgeItem key={badge} badge={badge} />
-            ))}
+          
+          <TrustBadgeSystem badges={guest.badges} maxVisible={4} />
+
+          {guest.badges.length < 6 && (
             <button 
               onClick={onVerify}
-              className="flex items-center gap-2 px-4 py-3 bg-gray-100/50 border border-dashed border-gray-200 rounded-2xl text-slate-400 hover:border-amber-400 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-white border border-dashed border-slate-200 rounded-[2rem] text-slate-400 hover:border-amber-400 hover:text-amber-600 transition-all group"
             >
-              <span className="text-xl opacity-30">➕</span>
-              <span className="text-[10px] font-black uppercase tracking-tight">Earn More Badges</span>
+              <span className="text-xl group-hover:scale-110 transition-transform">➕</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.1em]">Unlock More Community Badges</span>
             </button>
-          </div>
+          )}
         </div>
 
         {/* Dashboard Cards */}
@@ -111,8 +152,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
              </p>
           </div>
           <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between h-32">
-             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Recommendation</p>
-             <p className="text-3xl font-black text-slate-900">{guest.hostRecommendationRate}%</p>
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Trust Points</p>
+             <p className="text-3xl font-black text-slate-900">{guest.trustPoints}</p>
              <p className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">Community Proof</p>
           </div>
         </div>
@@ -120,7 +161,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
         {/* Switch Context */}
         <div className="pt-4">
            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white space-y-4 shadow-xl relative overflow-hidden">
-             <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-amber-500 rounded-full blur-[80px] opacity-20"></div>
+             <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-amber-50 rounded-full blur-[80px] opacity-20"></div>
              <h4 className="text-xl font-black relative z-10">Switch Context</h4>
              <p className="text-xs text-slate-400 font-medium relative z-10">Toggle between guest exploring and host dashboard.</p>
              <div className="flex gap-2 relative z-10">
@@ -140,42 +181,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ guest, currentRole, on
            </div>
         </div>
       </div>
-
-      {/* View All Badges Modal */}
-      {showAllBadges && (
-        <div className="fixed inset-0 z-[100] flex flex-col justify-end animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAllBadges(false)} />
-          <div className="relative bg-white rounded-t-[3rem] p-8 space-y-8 animate-slideUp safe-bottom shadow-[0_-20px_50px_rgba(0,0,0,0.1)] max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div className="w-12 h-1.5 bg-gray-100 rounded-full mx-auto -mt-2" />
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black text-slate-900">Your Trust Network</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Badges: {guest.badges.length}</p>
-            </div>
-            
-            <div className="space-y-4">
-               {guest.badges.map(badge => (
-                  <div key={badge} className="flex items-start gap-4 p-5 bg-slate-50 rounded-[2rem] border border-slate-100">
-                    <span className="text-3xl">{BADGE_METADATA[badge].icon}</span>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-black text-slate-900 uppercase tracking-tighter">{badge}</h4>
-                      <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest">{BADGE_METADATA[badge].microcopy}</p>
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed italic mt-2">
-                        "{BADGE_METADATA[badge].tooltip}"
-                      </p>
-                    </div>
-                  </div>
-               ))}
-            </div>
-            
-            <button 
-              onClick={() => setShowAllBadges(false)}
-              className="w-full bg-slate-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl"
-            >
-              Back to Profile
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

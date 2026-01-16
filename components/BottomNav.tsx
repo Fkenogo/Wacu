@@ -31,7 +31,7 @@ export const BottomNav: React.FC<Props> = ({ currentView, role, onNavigate }) =>
         return [
           { id: 'HOME', label: 'Explore', icon: '🔍' },
           { id: 'WISHLIST', label: 'Wishlist', icon: '❤️' },
-          { id: 'GUEST_TRIPS', label: 'Trips', icon: '🎒' },
+          { id: 'GUEST_STAYS', label: 'Stays', icon: '🎒' },
           { id: 'PROFILE', label: 'Profile', icon: '👤' },
         ];
     }
