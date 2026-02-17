@@ -268,6 +268,21 @@ const App: React.FC = () => {
     }
   };
 
+  const QuickActionItem: React.FC<{ icon: string; title: string; desc: string; onClick: () => void }> = ({ icon, title, desc, onClick }) => (
+    <button 
+      onClick={onClick}
+      className="w-full flex items-center gap-4 p-5 bg-white rounded-[2rem] shadow-[0_4px_20px_rgba(0,0,0,0.04)] active:scale-[0.98] transition-all border border-gray-50 group"
+    >
+      <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center text-primary shrink-0 transition-colors group-hover:bg-amber-100">
+        <span className="material-symbols-outlined text-[28px] font-black">{icon}</span>
+      </div>
+      <div className="text-left">
+        <p className="text-[17px] font-black text-slate-900 tracking-tight leading-none mb-1.5">{title}</p>
+        <p className="text-[13px] text-slate-400 font-medium tracking-tight">{desc}</p>
+      </div>
+    </button>
+  );
+
   return (
     <Layout 
       title={currentView === 'LOGIN' ? 'ACCESS' : (currentView === 'HOME' ? 'KAZE' : currentView.replace('_', ' '))} 
@@ -280,36 +295,49 @@ const App: React.FC = () => {
 
       {showQuickActions && (
         <div className="fixed inset-0 z-[100] flex flex-col justify-end animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowQuickActions(false)} />
-          <div className="relative bg-white w-full rounded-t-[3rem] p-8 space-y-4 animate-slideUp safe-bottom">
-            <div className="w-12 h-1 bg-primary/20 rounded-full mx-auto mb-6" />
-            <div className="text-center mb-8">
-               <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Community Quick Actions</h3>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={() => setShowQuickActions(false)} />
+          <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-md mx-auto rounded-t-[3.5rem] p-8 pb-10 space-y-8 animate-slideUp shadow-2xl safe-bottom">
+            {/* Drag Handle */}
+            <div className="w-16 h-1.5 bg-amber-200 rounded-full mx-auto mb-2 opacity-50" />
+            
+            <div className="text-center">
+               <h3 className="text-[13px] font-black text-primary uppercase tracking-[0.2em]">Community Quick Actions</h3>
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              <button 
-                onClick={() => { setShowQuickActions(false); navigate('SEARCH'); }}
-                className="w-full flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all group"
-              >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-xl shrink-0">🔍</div>
-                <div className="text-left">
-                   <p className="font-bold text-slate-900 text-sm">Find a wacu</p>
-                   <p className="text-slate-400 text-xs">Discover nearby spaces</p>
-                </div>
-              </button>
-              <button 
-                onClick={() => { setShowQuickActions(false); navigate('HOST_WELCOME'); }}
-                className="w-full flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:scale-95 transition-all group"
-              >
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-xl shrink-0">🏠</div>
-                <div className="text-left">
-                   <p className="font-bold text-slate-900 text-sm">Become a host</p>
-                   <p className="text-slate-400 text-xs">Share your unique space</p>
-                </div>
-              </button>
+
+            <div className="grid grid-cols-1 gap-4">
+              <QuickActionItem 
+                icon="search" 
+                title="Find a wacu" 
+                desc="Discover nearby spaces" 
+                onClick={() => { setShowQuickActions(false); navigate('SEARCH'); }} 
+              />
+              <QuickActionItem 
+                icon="house" 
+                title="Become a host" 
+                desc="Share your unique space" 
+                onClick={() => { setShowQuickActions(false); navigate('HOST_WELCOME'); }} 
+              />
+              <QuickActionItem 
+                icon="card_giftcard" 
+                title="Refer a friend" 
+                desc="Earn credits together" 
+                onClick={() => { setShowQuickActions(false); navigate('REFERRAL_DASHBOARD'); }} 
+              />
+              <QuickActionItem 
+                icon="forum" 
+                title="Chat Support" 
+                desc="We're here to help" 
+                onClick={() => { setShowQuickActions(false); alert("Wacu Support Team alerted! Connecting you to WhatsApp..."); }} 
+              />
             </div>
-            <div className="pt-4 flex justify-center">
-              <button onClick={() => setShowQuickActions(false)} className="py-3 px-10 bg-gray-100 rounded-full text-slate-900 font-bold text-sm">Dismiss</button>
+
+            <div className="pt-2 flex justify-center">
+              <button 
+                onClick={() => setShowQuickActions(false)} 
+                className="py-4 px-12 bg-gray-100 hover:bg-gray-200 rounded-full text-slate-900 font-bold text-sm transition-colors active:scale-95 shadow-sm"
+              >
+                Dismiss
+              </button>
             </div>
           </div>
         </div>
