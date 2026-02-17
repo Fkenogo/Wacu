@@ -5,7 +5,8 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBSanHniOHTkvZaBCR-6e3PDDzhyEy6R1I",
+  // Use process.env.API_KEY exclusively as per environment security guidelines
+  apiKey: process.env.API_KEY,
   authDomain: "wacu-8b32d.firebaseapp.com",
   projectId: "wacu-8b32d",
   storageBucket: "wacu-8b32d.firebasestorage.app",

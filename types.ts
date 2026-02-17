@@ -58,6 +58,8 @@ export interface GuestProfile {
     confirmed: boolean;
   };
   role: UserRole;
+  paymentMethodType?: 'MERCHANT_CODE' | 'PHONE_NUMBER';
+  paymentIdentifier?: string;
 }
 
 export interface HouseRule {
@@ -120,9 +122,11 @@ export interface Listing {
   type: PropertyType;
   tags: ListingTag[];
   capacity: number;
+  bedsCount: number;
   bathroomCount: number;
   petFriendly: boolean;
   image: string;
+  photos?: string[];
   description: string;
   landmark: string;
   distanceToLandmark: string;

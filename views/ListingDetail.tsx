@@ -1,9 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
-import { Listing, Review, TrustBadge, Amenity, GuestProfile } from '../types';
-import { CATEGORY_DESCRIPTIONS, CATEGORY_ICONS, BADGE_METADATA, AMENITY_CATEGORIES, HOUSE_RULES_TOOLTIPS } from '../constants';
-import { TrustBadgeSystem, TrustTooltip } from '../components/TrustComponents';
+import { Listing, Review, GuestProfile, BookingState } from '../types';
+import { TrustBadgeSystem } from '../components/TrustComponents';
+import { BookingDatesView } from './BookingDates';
+import { BookingSummaryView } from './BookingSummary';
+import { PaymentMethodView } from './PaymentMethod';
 import * as dbService from '../services/db';
+import { auth } from '../firebase';
 
 interface ListingDetailViewProps {
   listing: Listing;
@@ -12,342 +15,314 @@ interface ListingDetailViewProps {
   isLiked: boolean;
   onToggleSave: () => void;
   onToggleLike: () => void;
-  onBook: () => void;
+  onBookingComplete: (booking: BookingState) => void;
+  onNavigateToVerify: () => void;
+  onHelp: () => void;
+  seenTooltips: Set<string>;
+  onDismissTooltip: (id: string) => void;
 }
 
-export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ listing, guest, isSaved, isLiked, onToggleSave, onToggleLike, onBook }) => {
-  const [commentText, setCommentText] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
-  
+export const ListingDetailView: React.FC<ListingDetailViewProps> = ({ 
+  listing, 
+  guest, 
+  isSaved, 
+  isLiked, 
+  onToggleSave, 
+  onToggleLike, 
+  onBookingComplete,
+  onNavigateToVerify,
+  onHelp,
+  seenTooltips,
+  onDismissTooltip
+}) => {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
-  const [showAllRules, setShowAllRules] = useState(false);
-  const [showHostProfile, setShowHostProfile] = useState(false);
+  const [bookingStep, setBookingStep] = useState<0 | 1 | 2 | 3>(0);
+  const [internalBooking, setInternalBooking] = useState<BookingState>({
+    listingId: listing.id,
+    listingTitle: listing.title,
+    startDate: null,
+    endDate: null,
+    adults: 1,
+    children: 0,
+    paymentMethod: null,
+    status: 'DRAFT',
+    totalPrice: listing.pricePerNight,
+    payoutReleased: false,
+    rulesAcknowledged: false
+  });
 
-  const criticalAmenities = useMemo(() => {
-    const ids = ['wifi', 'grid_power', 'solar', 'running_water', 'water_tank', 'security'];
-    return listing.amenities.filter(a => ids.includes(a.id));
-  }, [listing.amenities]);
-
-  const groupedAmenities = useMemo(() => {
-    return AMENITY_CATEGORIES.map(cat => ({
-      ...cat,
-      amenities: cat.amenities.filter(ca => listing.amenities.some(la => la.id === ca.id))
-    })).filter(cat => cat.amenities.length > 0);
-  }, [listing.amenities]);
-
-  const activeRules = useMemo(() => listing.rules.filter(r => r.enabled), [listing.rules]);
+  const handleLike = async () => {
+    if (!auth.currentUser) return;
+    onToggleLike();
+    await dbService.toggleLikeListing(listing.id, auth.currentUser.uid);
+  };
 
   const handleShare = async () => {
-    const shareUrl = window.location.origin + window.location.pathname;
-    const shareData = {
-      title: `Stay at this Wacu: ${listing.title} | Wacu`,
-      text: `Check out this ${listing.type} stay near ${listing.landmark} on Wacu!`,
-      url: shareUrl,
-    };
-
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({
+          title: listing.title,
+          text: `Check out this Wacu: ${listing.title} at ${listing.landmark}`,
+          url: window.location.href,
+        });
       } else {
-        throw new Error('Web Share API not supported');
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
       }
+      await dbService.incrementShares(listing.id);
     } catch (err) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert('Link copied to clipboard!');
-      } catch (clipErr) {
-        alert('Could not share or copy link.');
-      }
+      console.warn("Share failed", err);
     }
   };
 
-  const handlePostComment = async () => {
-    if (!commentText.trim() || isPosting || !guest) return;
-    
-    setIsPosting(true);
-    const newReview: Review = {
-      id: `r-new-${Date.now()}`,
-      user: guest.name,
-      userAvatar: guest.avatar,
-      rating: 5,
-      comment: commentText,
-      date: 'Just now',
-      likes: 0
-    };
-    
-    try {
-      await dbService.addListingReview(listing.id, newReview);
-      setCommentText('');
-    } catch (err) {
-      console.error(err);
-      alert("Failed to post review.");
-    } finally {
-      setIsPosting(false);
-    }
-  };
-
-  const openWhatsApp = () => {
-    const hostNumber = listing.paymentIdentifier || '250794003947';
-    const cleanNumber = hostNumber.replace(/\D/g, '').replace(/^0/, '250');
-    const message = encodeURIComponent(`Hi ${listing.hostName}, I'm interested in your Wacu: ${listing.title} on the platform.`);
-    window.open(`https://wa.me/${cleanNumber}?text=${message}`, '_blank');
-  };
-
-  const getYearsHosting = () => {
-    if (!listing.hostJoinDate) return "Trusted Host";
-    const yearMatch = listing.hostJoinDate.match(/\d{4}/);
-    if (!yearMatch) return "Verified Host";
-    const joinYear = parseInt(yearMatch[0]);
-    const currentYear = new Date().getFullYear();
-    const diff = currentYear - joinYear;
-    return diff <= 0 ? "New Host" : `${diff} Year${diff > 1 ? 's' : ''} Hosting`;
-  };
+  const photos = listing.photos || [listing.image];
 
   return (
-    <div className="flex flex-col animate-slideUp bg-white pb-32 no-scrollbar overflow-y-auto h-full">
-      {/* Image Gallery */}
-      <div className="relative aspect-[4/3] bg-gray-200">
-        <img src={listing.image} alt={listing.title} className="w-full h-full object-cover shadow-inner" />
-        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1.5 rounded-full">
-          1 / {listing.photos?.length || 5} Photos
-        </div>
-        
-        <div className="absolute top-4 right-4 flex flex-col gap-3">
-          <button onClick={(e) => { e.stopPropagation(); onToggleSave(); }} className="p-3 bg-white/95 backdrop-blur-md rounded-full shadow-xl active:scale-90 transition-transform">
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isSaved ? 'text-red-500 fill-current' : 'text-slate-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
+    <div className="flex flex-col animate-fadeIn bg-white min-h-screen relative pb-32">
+      {/* 1. Header Overlay */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex justify-between p-4 items-center">
+        <button 
+          onClick={() => window.history.back()}
+          className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all"
+        >
+          <span className="material-symbols-outlined text-slate-900">arrow_back</span>
+        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleShare}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all"
+          >
+            <span className="material-symbols-outlined text-slate-900">share</span>
           </button>
-          <button onClick={handleShare} className="p-3 bg-white/95 backdrop-blur-md rounded-full shadow-xl active:scale-90 transition-transform text-xl">📤</button>
+          <button 
+            onClick={handleLike}
+            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md active:scale-90 transition-all"
+          >
+            <span className={`material-symbols-outlined ${isLiked ? 'text-red-500 fill-current' : 'text-slate-900'}`}>favorite</span>
+          </button>
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
+      {/* 2. Hero Image Section */}
+      <div className="relative aspect-[4/3] w-full">
+        <img src={listing.image} className="w-full h-full object-cover" alt={listing.title} />
+        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-white text-[10px] font-bold tracking-widest">
+          1/{photos.length}
+        </div>
+      </div>
+
+      {/* 3. Title & Info Section */}
+      <div className="px-6 py-8 space-y-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">
+            {listing.title}
+          </h1>
+          <div className="flex items-center gap-1.5 text-slate-500 font-bold text-sm">
+            <span className="material-symbols-outlined text-sm">location_on</span>
+            <p>{listing.landmark}, Rwanda • {listing.bedsCount || 2} beds • {listing.bathroomCount} baths • {listing.capacity} guests</p>
+          </div>
+        </div>
+
+        {/* Community Engagement Stats (Wacu Buzz) */}
+        <div className="flex items-center gap-6 px-1">
+          <div className="flex flex-col">
+            <span className="text-lg font-black text-slate-900 leading-none">{listing.likesCount || 0}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Likes</span>
+          </div>
+          <div className="w-px h-8 bg-slate-100" />
+          <div className="flex flex-col">
+            <span className="text-lg font-black text-slate-900 leading-none">{listing.sharesCount || 0}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Shares</span>
+          </div>
+          <div className="w-px h-8 bg-slate-100" />
+          <div className="flex flex-col">
+            <span className="text-lg font-black text-slate-900 leading-none">{listing.reviewCount || 0}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Reviews</span>
+          </div>
+        </div>
+
+        {/* Community Favorite Card */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex items-center justify-between group active:bg-slate-50 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-2xl">💬</div>
+              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="material-symbols-outlined text-[10px] font-bold">star</span>
+              </div>
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Community Favorite</span>
+                <span className="text-slate-900 font-black text-sm">Wacu Buzz</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="font-black text-slate-900 text-sm">{listing.rating}</span>
+                <div className="flex text-amber-500 text-[10px]">★★★★★</div>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium italic">"One of the most loved by travelers..."</p>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-slate-300">chevron_right</span>
+        </div>
+
+        {/* Host Card */}
+        <div className="flex items-center justify-between py-6 border-y border-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <img src={listing.hostAvatar} className="w-14 h-14 rounded-full object-cover shadow-sm border border-slate-100" alt={listing.hostName} />
+              {listing.isVerified && (
+                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white w-5 h-5 rounded-full border-2 border-white flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[10px] font-bold">verified</span>
+                </div>
+              )}
+            </div>
+            <div>
+              <h4 className="font-black text-slate-900 text-base">Hosted by {listing.hostName}</h4>
+              <p className="text-xs text-slate-400 font-bold">
+                {listing.isVerified ? 'Verified Host' : 'KAZE Member'} • {listing.hostJoinDate || 'Joining recently'}
+              </p>
+            </div>
+          </div>
+          <button className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-900 uppercase tracking-widest active:scale-95 transition-all shadow-sm">
+            Contact
+          </button>
+        </div>
+
+        {/* Host Bio Section */}
         <div className="space-y-4">
-          <div className="flex justify-between items-start">
-            <h2 className="text-2xl font-black text-slate-900 leading-tight flex-1">{listing.title}</h2>
-            <div className="text-right">
-              <p className="text-xl font-black text-emerald-600">{listing.pricePerNight.toLocaleString()} RWF</p>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">per night</p>
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Meet your host</h3>
+          <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-4">
+             <p className="text-slate-600 text-sm leading-relaxed font-medium italic">
+               "{listing.hostBio || 'I am excited to welcome you to our Wacu community stay. We pride ourselves on authentic Rwandan hospitality.'}"
+             </p>
+             <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Languages</p>
+                   <p className="text-xs font-bold text-slate-900">{listing.hostLanguages?.join(', ') || 'Kinyarwanda, English'}</p>
+                </div>
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Response Rate</p>
+                   <p className="text-xs font-bold text-slate-900">{listing.hostResponseRate || '95%'}</p>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* About Section */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">About this space</h3>
+          <p className="text-slate-600 text-sm leading-relaxed font-medium">
+            {listing.description || "Experience unparalleled luxury in the heart of Kigali. This architecturally stunning villa offers panoramic views of the hills, high-end Italian finishes, and a private infinity pool."}
+          </p>
+          <button className="flex items-center gap-1 text-slate-900 font-black text-sm border-b-2 border-slate-900 pb-0.5">
+            Show more <span className="material-symbols-outlined text-sm">chevron_right</span>
+          </button>
+        </div>
+
+        {/* What this place offers */}
+        <div className="space-y-6 pt-4">
+          <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">What this place offers</h3>
+          <div className="space-y-5">
+            {listing.amenities.slice(0, 5).map(amenity => (
+              <div key={amenity.id} className="flex items-start gap-4">
+                <span className="text-xl">{amenity.icon}</span>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-black text-slate-900">{amenity.name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {listing.amenities.length > 5 && (
+            <button 
+              onClick={() => setShowAllAmenities(true)}
+              className="w-full py-4 bg-white border border-slate-200 rounded-2xl text-xs font-black text-slate-900 uppercase tracking-[0.1em] active:scale-[0.98] transition-all"
+            >
+              Show all {listing.amenities.length} amenities
+            </button>
+          )}
+        </div>
+
+        {/* Wacu North Star Guide */}
+        <div className="space-y-6 pt-8">
+          <div className="flex justify-between items-end">
+            <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Wacu North Star Guide</h3>
+            <span className="bg-primary text-[#1d180c] px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm">Neighborhood Expert</span>
+          </div>
+          
+          <div className="relative rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl bg-slate-50 aspect-[16/10]">
+            <div className="absolute inset-0 opacity-20 bg-[url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/29.8739,1.9441,12/800x450?access_token=none')] bg-cover"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center border border-primary animate-pulse">
+                <div className="w-4 h-4 bg-primary rounded-full shadow-lg"></div>
+              </div>
+            </div>
+            <div className="absolute bottom-0 left-0 right-0 p-5 grid grid-cols-3 gap-2 bg-white/60 backdrop-blur-md border-t border-white/40">
+              <div className="text-center">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Safety</p>
+                <p className="text-lg font-black text-emerald-600">9.8</p>
+              </div>
+              <div className="text-center border-x border-slate-200/50">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Transit</p>
+                <p className="text-lg font-black text-slate-900">8.2</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Vibe</p>
+                <p className="text-sm font-black text-slate-900 uppercase tracking-tight pt-1">Peaceful</p>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center justify-between pb-4 border-b border-slate-50">
-            <div className="flex items-center gap-3">
-               <div className="flex items-center text-amber-500 font-black text-sm">★ {listing.rating}</div>
-               <span className="text-gray-300">|</span>
-               <p className="text-slate-500 text-[11px] font-black uppercase tracking-widest">{listing.type}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <button onClick={onToggleLike} className="flex items-center gap-1.5">
-                <span className="text-lg">{isLiked ? '❤️' : '🤍'}</span>
-                <span className="text-[10px] font-black text-slate-500 uppercase">{listing.likesCount + (isLiked ? 1 : 0)}</span>
-              </button>
-              <div className="flex items-center gap-1.5">
-                <span className="text-lg">💬</span>
-                <span className="text-[10px] font-black text-slate-500 uppercase">{listing.reviewCount}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {criticalAmenities.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {criticalAmenities.map(a => (
-              <div key={a.id} className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-100 flex items-center gap-2">
-                <span className="text-xs">{a.icon}</span>
-                <span className="text-[9px] font-black uppercase tracking-widest">{a.name}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div 
-          onClick={() => setShowHostProfile(true)}
-          className="bg-slate-50 rounded-[2rem] p-5 border border-slate-100 flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer shadow-sm group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <img src={listing.hostAvatar} className="w-14 h-14 rounded-full border-2 border-white object-cover shadow-md" alt="Host" />
-              <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white p-0.5 rounded-full border-2 border-white shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-            <div>
-              <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Wacu Host</p>
-              <h4 className="text-base font-black text-slate-900 leading-none">{listing.hostName}</h4>
-              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Verified Legend • {listing.hostCompletedStays || 10}+ Stays Hosted</p>
-            </div>
-          </div>
-          <span className="text-slate-300 font-black group-hover:translate-x-1 transition-transform">→</span>
-        </div>
-
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <h4 className="font-bold text-slate-900 uppercase tracking-widest text-[11px]">THE STORY OF THIS WACU</h4>
-            <p className="text-gray-600 text-sm leading-relaxed font-medium">{listing.description}</p>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h4 className="font-bold text-slate-900 uppercase tracking-widest text-[11px]">WACU AMENITIES</h4>
-              {groupedAmenities.length > 2 && (
-                <button 
-                  onClick={() => setShowAllAmenities(!showAllAmenities)}
-                  className="text-amber-500 text-[10px] font-black uppercase tracking-widest hover:text-amber-600 transition-colors"
-                >
-                  {showAllAmenities ? 'Show Less' : `Show All (${listing.amenities.length})`}
-                </button>
-              )}
-            </div>
-            
-            <div className="space-y-6">
-              {(showAllAmenities ? groupedAmenities : groupedAmenities.slice(0, 2)).map(cat => (
-                <div key={cat.id} className="space-y-3 animate-fadeIn">
-                  <div className="flex items-center gap-2 border-b border-slate-50 pb-1">
-                    <span className="text-sm">{cat.icon}</span>
-                    <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cat.name}</h5>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {cat.amenities.map(amenity => (
-                      <div key={amenity.id} className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-50 shadow-sm">
-                        <span className="text-lg">{amenity.icon}</span>
-                        <span className="text-[10px] text-slate-600 font-black uppercase tracking-tight">{amenity.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-6 pt-4 border-t border-slate-50">
-          <div className="flex justify-between items-center">
-            <h4 className="font-bold text-slate-900 uppercase tracking-widest text-[11px]">THE WACU BUZZ</h4>
-            <span className="text-[9px] font-black text-amber-500 uppercase">COMMUNITY FEEDBACK</span>
-          </div>
-
-          <div className="space-y-6">
-            {listing.reviews?.map((review) => (
-              <div key={review.id} className="space-y-3 animate-fadeIn">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 bg-slate-100 rounded-full flex-shrink-0 flex items-center justify-center font-black text-slate-400 text-xs shadow-sm overflow-hidden">
-                    {review.userAvatar ? <img src={review.userAvatar} className="w-full h-full object-cover" /> : review.user.charAt(0)}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs font-black text-slate-800">{review.user}</p>
-                      <span className="text-[9px] text-slate-400 font-bold">{review.date}</span>
-                    </div>
-                    <p className="text-xs text-slate-600 leading-relaxed font-medium bg-slate-50 p-3 rounded-2xl rounded-tl-none">{review.comment}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white p-2 rounded-[2rem] border border-slate-100 shadow-xl flex items-center gap-3">
-             <input 
-              type="text" 
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder={guest ? "Join the conversation..." : "Sign in to post a review..."} 
-              disabled={!guest}
-              className="flex-1 bg-transparent px-4 py-3 outline-none text-xs font-medium"
-             />
-             <button 
-              onClick={handlePostComment}
-              disabled={!commentText.trim() || isPosting || !guest}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${commentText.trim() && !isPosting && guest ? 'bg-amber-500 text-white shadow-lg shadow-amber-200' : 'bg-slate-100 text-slate-300'}`}
-             >
-               {isPosting ? '...' : '→'}
-             </button>
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-4 border-t border-slate-50">
-          <h4 className="font-bold text-slate-900 uppercase tracking-widest text-[11px]">HOW TO FIND THIS WACU</h4>
-          <div className="bg-amber-50/50 p-6 rounded-[2.5rem] border border-amber-100/50 space-y-4 shadow-inner">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📍</span>
-              <div>
-                <p className="text-[9px] font-black text-amber-800 uppercase tracking-widest">Wacu North Star</p>
-                <p className="text-sm font-black text-slate-900">{listing.landmark}</p>
-              </div>
-            </div>
-            <p className="text-xs text-amber-900/80 font-bold leading-relaxed italic">"{listing.howToGetThere}"</p>
-          </div>
+          <p className="text-xs text-slate-500 font-medium leading-relaxed italic text-center px-4">
+            "{listing.landmark} is one of Rwanda's most vibrant areas. It's safe for evening walks and very welcoming to visitors." — {listing.hostName}
+          </p>
         </div>
       </div>
 
-      {/* Host Profile Modal */}
-      {showHostProfile && (
+      {/* GUIDED BOOKING MODAL */}
+      {bookingStep > 0 && (
         <div className="fixed inset-0 z-[100] flex flex-col justify-end animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowHostProfile(false)} />
-          <div className="relative bg-white w-full rounded-t-[3rem] animate-slideUp overflow-hidden max-h-[95vh] flex flex-col">
-            <div className="sticky top-0 bg-white z-10 px-8 pt-8 pb-4 flex justify-between items-center">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Wacu Ambassador</h3>
-              <button onClick={() => setShowHostProfile(false)} className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400">✕</button>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setBookingStep(0)} />
+          <div className="relative bg-white w-full max-w-md mx-auto rounded-t-[3rem] animate-slideUp overflow-hidden max-h-[95vh] flex flex-col shadow-2xl">
+            <div className="sticky top-0 bg-white z-10 px-8 pt-8 pb-4 flex justify-between items-center border-b border-slate-50">
+              <div>
+                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Request Booking</h3>
+                 <div className="flex gap-1.5 mt-2">
+                    {[1, 2, 3].map(s => (
+                      <div key={s} className={`h-1 rounded-full transition-all ${bookingStep >= s ? 'w-6 bg-amber-500' : 'w-2 bg-slate-100'}`} />
+                    ))}
+                 </div>
+              </div>
+              <button onClick={() => setBookingStep(0)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center font-black text-slate-400">✕</button>
             </div>
-
-            <div className="flex-1 overflow-y-auto px-8 pb-12 space-y-8 no-scrollbar">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="relative">
-                  <img src={listing.hostAvatar} className="w-32 h-32 rounded-full border-4 border-amber-50 shadow-2xl object-cover" alt="Profile" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 leading-tight">{listing.hostName}</h2>
-                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1 bg-emerald-50 px-4 py-1.5 rounded-full inline-block">Wacu Legend</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-1">
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Experience</p>
-                   <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{getYearsHosting()}</p>
-                 </div>
-                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-1">
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Stays Hosted</p>
-                   <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{listing.hostCompletedStays || 12}+ Stays</p>
-                 </div>
-                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center text-center gap-1">
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Response</p>
-                   <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{listing.hostResponseRate || "100%"}</p>
-                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <TrustBadgeSystem badges={listing.hostTrustBadges || ['Contact Verified', 'Identity Verified', 'Active Host']} variant="grid" />
-              </div>
-
-              <div className="space-y-3 pt-4 sticky bottom-0 bg-white">
-                <button 
-                  onClick={openWhatsApp}
-                  className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
-                >
-                  <span className="text-xl">💬</span> Message on WhatsApp
-                </button>
-              </div>
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+               {bookingStep === 1 && (
+                 <BookingDatesView listing={listing} booking={internalBooking} onUpdate={(u) => setInternalBooking(p => ({ ...p, ...u }))} onContinue={() => setBookingStep(2)} />
+               )}
+               {bookingStep === 2 && guest && (
+                 <BookingSummaryView listing={listing} booking={internalBooking} guest={guest} onUpdate={(u) => setInternalBooking(p => ({ ...p, ...u }))} onContinue={(needsVerify) => needsVerify ? onNavigateToVerify() : setBookingStep(3)} onNavigateToVerify={onNavigateToVerify} />
+               )}
+               {bookingStep === 3 && (
+                 <PaymentMethodView listing={listing} booking={internalBooking} onSelect={() => onBookingComplete(internalBooking)} onConfirmedSent={() => onBookingComplete({ ...internalBooking, guestPaymentMarked: true })} onHelp={onHelp} seenTooltips={seenTooltips} onDismissTooltip={onDismissTooltip} />
+               )}
             </div>
           </div>
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-gray-100 p-5 safe-bottom flex items-center justify-between max-w-md mx-auto shadow-[0_-15px_35px_rgba(0,0,0,0.1)] z-50 rounded-t-[2.5rem]">
-        <div className="flex flex-col px-3">
-          <span className="text-2xl font-black text-slate-900">{listing.pricePerNight.toLocaleString()} RWF</span>
-          <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Rare Find
-          </span>
+      {/* Fixed Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-gray-100 p-6 safe-bottom flex items-center justify-between max-w-md mx-auto z-40 rounded-t-[2.5rem] shadow-2xl">
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-slate-900">RWF {listing.pricePerNight.toLocaleString()}</span>
+            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">/ night</span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.1em] mt-0.5">Flexible dates available</span>
         </div>
         <button 
-          onClick={onBook}
-          className="bg-amber-500 hover:bg-amber-600 text-white px-10 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-amber-200 active:scale-95 transition-all transform -translate-y-1"
+          onClick={() => setBookingStep(1)}
+          className="bg-primary hover:bg-primary/90 text-[#1d180c] px-10 py-4 rounded-[1.2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all transform -translate-y-0.5"
         >
-          Claim Your Spot!
+          Book Now
         </button>
       </div>
     </div>
