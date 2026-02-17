@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { HostListingState } from '../../types';
+import { auth, uploadImage } from '../../firebase';
 
 interface Props {
   state: HostListingState;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }) => {
+  const [isUploading, setIsUploading] = useState(false);
   const [nameTouched, setNameTouched] = useState(false);
   const [descTouched, setDescTouched] = useState(false);
   const [howTouched, setHowTouched] = useState(false);
@@ -21,7 +23,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
   const isPhotoInvalid = photoTouched && !state.photos[0];
 
   const handleContinue = () => {
-    // Force show all errors if user attempts to skip
     setNameTouched(true);
     setDescTouched(true);
     setHowTouched(true);
@@ -32,22 +33,35 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const newPhotos = [...state.photos];
-        newPhotos[0] = result;
-        onUpdate({ photos: newPhotos });
-        setPhotoTouched(false);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      // Ensure we have a listing ID for the folder path
+      const listingId = state.id || `pending_${Date.now()}`;
+      if (!state.id) onUpdate({ id: listingId });
+
+      const fileName = `main_${Date.now()}_${file.name}`;
+      const path = `listings/${listingId}/${fileName}`;
+      
+      const downloadUrl = await uploadImage(file, path);
+      
+      const newPhotos = [...state.photos];
+      newPhotos[0] = downloadUrl;
+      onUpdate({ photos: newPhotos });
+      setPhotoTouched(false);
+    } catch (err) {
+      console.error("Upload failed", err);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const triggerUpload = () => {
+    if (isUploading) return;
     fileInputRef.current?.click();
   };
 
@@ -55,13 +69,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
     { id: 'Entire Place', label: 'Entire Place', desc: 'Guests have the whole Wacu to themselves.', icon: '🔑' },
     { id: 'Private Room', label: 'Private Room', desc: 'Guests have their own room but share other spaces.', icon: '🚪' },
     { id: 'Shared Room', label: 'Shared Room', desc: 'Guests stay in a bedroom or common area shared with others.', icon: '🤝' }
-  ];
-
-  const interactionOptions = [
-    { label: 'I give guests privacy', desc: 'I give guests their complete space and privacy.', icon: '🤫' },
-    { label: 'I love sharing meals', desc: 'I love sharing meals, stories, and local coffee.', icon: '☕' },
-    { label: 'I offer local tours', desc: 'I enjoy taking guests on tours or teaching crafts.', icon: '🗺️' },
-    { label: 'I am available if needed', desc: 'I am nearby and responsive to any questions.', icon: '📱' }
   ];
 
   return (
@@ -72,7 +79,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
       </div>
 
       <div className="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-10">
-        {/* Main Photo Upload Section */}
         <div className="space-y-2">
           <div className="flex justify-between items-center px-1">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Main Wacu Photo</label>
@@ -97,7 +103,12 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
                   : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
             }`}
           >
-            {state.photos[0] ? (
+            {isUploading ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 border-4 border-amber-100 border-t-amber-500 rounded-full animate-spin"></div>
+                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Uploading...</p>
+              </div>
+            ) : state.photos[0] ? (
               <>
                 <img src={state.photos[0]} className="w-full h-full object-cover" alt="Preview" />
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -114,7 +125,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
           {isPhotoInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">EVERY WACU NEEDS A PHOTO!</p>}
         </div>
 
-        {/* Privacy & Space Selector */}
         <div className="space-y-3">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Privacy & Space</label>
           <div className="grid grid-cols-1 gap-3">
@@ -141,7 +151,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
           </div>
         </div>
 
-        {/* Name Input */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GIVE YOUR WACU A CATCHY NAME</label>
           <input 
@@ -162,7 +171,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
           )}
         </div>
 
-        {/* Description Input */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Why Will Guests Obsess Over This Wacu?</label>
           <textarea 
@@ -178,7 +186,6 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
           {isDescInvalid && <p className="text-[10px] text-red-500 font-black ml-1 uppercase">Share the story of your Wacu!</p>}
         </div>
 
-        {/* Instructions Input */}
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">The Secret Path to Your Wacu Door</label>
           <textarea 
@@ -197,9 +204,10 @@ export const PropertyDetails: React.FC<Props> = ({ state, onUpdate, onContinue }
 
       <button
         onClick={handleContinue}
-        className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] shadow-2xl active:scale-95 transition-all uppercase tracking-[0.2em] text-xs hover:bg-slate-800"
+        disabled={isUploading}
+        className={`w-full bg-slate-900 text-white font-black py-5 rounded-[1.5rem] shadow-2xl transition-all uppercase tracking-[0.2em] text-xs ${isUploading ? 'opacity-50 cursor-not-allowed' : 'active:scale-95 hover:bg-slate-800'}`}
       >
-        PIN YOUR WACU ON THE MAP!
+        {isUploading ? 'Waiting for upload...' : 'PIN YOUR WACU ON THE MAP!'}
       </button>
     </div>
   );

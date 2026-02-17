@@ -1,8 +1,9 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HostListingState, BookingState, GuestProfile } from '../../types';
 import { TrustBadgeItem, TrustTooltip, ContextualNudge } from '../../components/TrustComponents';
 import { HOUSE_RULES_TOOLTIPS } from '../../constants';
+import { db, auth } from '../../firebase';
+import { collection, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 interface Props {
   listings: HostListingState[];
@@ -46,6 +47,7 @@ export const HostDashboard: React.FC<Props> = ({
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [remittanceNote, setRemittanceNote] = useState('');
   const [activeRemittanceId, setActiveRemittanceId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
 
   const pendingPayment = requests.filter(r => r.status === 'PENDING_PAYMENT' || (r.guestPaymentMarked && !r.hostPaymentConfirmed));
   const activeStays = requests.filter(r => r.status === 'CONFIRMED' || r.status === 'ACTIVE_STAY');
@@ -58,10 +60,24 @@ export const HostDashboard: React.FC<Props> = ({
     .reduce((sum, r) => sum + (r.expectedCommission || 0), 0);
   const completedCount = requests.filter(r => r.status === 'COMPLETED' && r.hostPaymentConfirmed).length;
 
-  const mockMessages = [
-    { id: 'm1', from: 'Emmanuel Mugisha', text: 'Hi Clarisse, is the wifi fast enough for zoom calls? I have a few meetings.', time: '2h ago', unread: true, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop' },
-    { id: 'm2', from: 'Sarah Uwase', text: 'Checking in tomorrow around 2 PM! Is that okay?', time: '1d ago', unread: false, avatar: 'https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=200&h=200&fit=crop' },
-  ];
+  useEffect(() => {
+    if (!auth.currentUser) return;
+    // Real-time listener for host's incoming messages/chats
+    const q = query(collection(db, "chats"), where("hostId", "==", auth.currentUser.uid), orderBy("lastMessageTime", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      console.error("Inbox feed error:", error);
+      if (error.message.includes('requires an index')) {
+        // Fallback to simple query with client-side sort
+        onSnapshot(query(collection(db, "chats"), where("hostId", "==", auth.currentUser.uid)), (snap) => {
+           const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+           setMessages(data.sort((a: any, b: any) => (b.lastMessageTime?.seconds || 0) - (a.lastMessageTime?.seconds || 0)));
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleSendReminder = (id: string, type: 'RULES' | 'CHECKOUT') => {
     alert(`Automated ${type} reminder sent to guest. A notification will appear in their "My Stays" view.`);
@@ -76,7 +92,6 @@ export const HostDashboard: React.FC<Props> = ({
 
   const EarningsView = () => (
     <div className="space-y-8 animate-fadeIn pb-12">
-      {/* Disclaimer */}
       <div className="bg-slate-100 p-4 rounded-2xl border border-slate-200 flex justify-between items-center">
         <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest text-center flex-1 pr-4">
           Disclaimer: Amounts shown are based on confirmations. WACU does not process payments in Phase 1.
@@ -105,7 +120,6 @@ export const HostDashboard: React.FC<Props> = ({
         onDismiss={onDismissTooltip}
       />
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-900 p-5 rounded-[2.5rem] text-white shadow-xl space-y-1">
           <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-60">Payments Received</p>
@@ -137,7 +151,6 @@ export const HostDashboard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Booking List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-2">
           <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Recent Transactions</h3>
@@ -164,7 +177,7 @@ export const HostDashboard: React.FC<Props> = ({
                   </div>
                   <div className="text-right">
                     <p className="font-black text-slate-900 text-sm">{req.totalPrice.toLocaleString()} RWF</p>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{req.paymentMethod === 'MERCHANT_CODE' ? 'Merchant' : 'Personal MoMo'}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{req.paymentMethodType === 'MERCHANT_CODE' ? 'Merchant' : 'Personal MoMo'}</p>
                   </div>
                 </div>
 
@@ -227,7 +240,6 @@ export const HostDashboard: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Commission Remittance Section */}
       <div className="space-y-4">
         <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] ml-2">Commission Due to WACU</h3>
         <div className="bg-slate-900 rounded-[3rem] p-8 text-white space-y-6 shadow-2xl relative overflow-hidden border-2 border-amber-500/30">
@@ -314,7 +326,6 @@ export const HostDashboard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-2xl sticky top-0 z-50 mx-6 mb-6">
          {(['OVERVIEW', 'EARNINGS', 'LISTINGS', 'BOOKINGS', 'INBOX'] as Tab[]).map(tab => (
            <button 
@@ -346,7 +357,6 @@ export const HostDashboard: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* Smart Automations / Nudges */}
             <div className="bg-blue-600 rounded-[2rem] p-6 text-white space-y-4 shadow-xl shadow-blue-100 overflow-hidden relative">
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12 blur-2xl" />
               <div className="relative z-10 space-y-1">
@@ -429,19 +439,23 @@ export const HostDashboard: React.FC<Props> = ({
 
         {activeTab === 'INBOX' && (
           <div className="space-y-4">
-            {mockMessages.map(msg => (
-               <div key={msg.id} onClick={() => setSelectedMessage(msg)} className="bg-white p-5 rounded-[2rem] border border-slate-100 flex gap-4 cursor-pointer active:scale-95 transition-all">
-                  <img src={msg.avatar} className="w-12 h-12 rounded-full border-2 border-slate-50" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <h4 className="font-black text-slate-900 text-xs">{msg.from}</h4>
-                      <span className="text-[8px] text-slate-400">{msg.time}</span>
+            {messages.length === 0 ? (
+               <div className="py-20 text-center text-slate-400 font-black uppercase text-[10px]">No messages yet</div>
+            ) : (
+              messages.map(msg => (
+                <div key={msg.id} onClick={() => setSelectedMessage(msg)} className="bg-white p-5 rounded-[2rem] border border-slate-100 flex gap-4 cursor-pointer active:scale-95 transition-all">
+                    <img src={msg.guestAvatar || 'https://via.placeholder.com/100'} className="w-12 h-12 rounded-full border-2 border-slate-50" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <h4 className="font-black text-slate-900 text-xs">{msg.guestName || 'Guest'}</h4>
+                        <span className="text-[8px] text-slate-400">{msg.lastMessageTime?.toDate().toLocaleDateString() || 'Recently'}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-medium truncate">{msg.lastMessageText || 'Tap to view chat...'}</p>
                     </div>
-                    <p className="text-[10px] text-slate-500 font-medium truncate">{msg.text}</p>
-                  </div>
-                  {msg.unread && <div className="w-2 h-2 bg-amber-500 rounded-full mt-2" />}
-               </div>
-            ))}
+                    {msg.unread && <div className="w-2 h-2 bg-amber-500 rounded-full mt-2" />}
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>

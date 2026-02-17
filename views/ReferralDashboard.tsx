@@ -7,18 +7,19 @@ interface Props {
   onBack: () => void;
   referralCount: number;
   trustPoints: number;
+  userId: string;
 }
 
-export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trustPoints }) => {
+export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trustPoints, userId }) => {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
 
-  const baseRef = "keza123";
-  // Dynamically generate link based on selection
+  const baseRef = userId?.slice(-6) || "keza123";
+  // Dynamically generate link based on selection and real User ID
   const referralLink = selectedType 
-    ? `wacu.rw/ref/${baseRef}?type=${selectedType.toLowerCase().replace(/\s+/g, '_')}`
-    : `wacu.rw/ref/${baseRef}`;
+    ? `kaze.rw/ref/${baseRef}?type=${selectedType.toLowerCase().replace(/\s+/g, '_')}`
+    : `kaze.rw/ref/${baseRef}`;
 
   const handleCopy = () => {
     if (!selectedType) return;
@@ -42,7 +43,7 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
     {
       icon: "👥",
       title: "Tell us who you're referring",
-      desc: "Vouch for your friend to host a Wacu, offer an experience, or join as a trusted guest."
+      desc: "Vouch for your friend to host a KAZE, offer an experience, or join as a trusted guest."
     },
     {
       icon: "📤",
@@ -72,7 +73,7 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
       <div className="p-8 space-y-10">
         <div className="space-y-3">
           <h2 className="text-3xl font-black text-slate-900 leading-tight">Refer a Host,<br/>earn Trust Rewards</h2>
-          <p className="text-slate-500 text-sm font-medium">Strengthen our community. Every successful vouch builds your Wacu reputation.</p>
+          <p className="text-slate-500 text-sm font-medium">Strengthen our community. Every successful vouch builds your KAZE reputation.</p>
         </div>
 
         {/* Stats Grid */}
@@ -89,7 +90,7 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
           </div>
         </div>
 
-        {/* New Step 1: Select Type */}
+        {/* Selection Type */}
         <div className="space-y-4">
            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Step 1: What type of host are you referring?</h4>
            <div className="space-y-3 max-h-[320px] overflow-y-auto no-scrollbar pr-1 border-b border-slate-50 pb-4">
@@ -121,7 +122,7 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
            </div>
         </div>
 
-        {/* New Step 2: Link Section (Revealed after selection) */}
+        {/* Link Section */}
         <div className={`space-y-4 transition-all duration-500 ${selectedType ? 'opacity-100 translate-y-0 scale-100' : 'opacity-30 pointer-events-none translate-y-4 scale-95 grayscale'}`}>
            <div className="flex justify-between items-center px-1">
              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Step 2: Your Unique Invite Link</h4>
@@ -147,11 +148,6 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
                 {copied ? 'Copied!' : 'Copy'}
               </button>
            </div>
-           {selectedType && (
-             <p className="text-[9px] text-slate-400 font-medium text-center italic animate-fadeIn">
-               This link is optimized for {selectedType} hosts.
-             </p>
-           )}
         </div>
 
         <button 
@@ -192,9 +188,6 @@ export const ReferralDashboard: React.FC<Props> = ({ onBack, referralCount, trus
               >
                 Got it!
               </button>
-              <p className="text-center text-[9px] text-slate-400 uppercase tracking-widest">
-                Rewards are used to increase your Internal Trust Level. <span className="underline font-bold">Terms apply</span>.
-              </p>
             </div>
           </div>
         </div>

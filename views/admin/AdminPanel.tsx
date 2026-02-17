@@ -70,7 +70,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
       </div>
       <div className="flex gap-3">
         <button className="px-4 py-2 bg-white border border-slate-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400">Export CSV</button>
-        <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Wacu HQ</button>
+        <button className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">KAZE HQ</button>
       </div>
     </div>
   );
@@ -80,9 +80,9 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: 'Total Bookings', value: bookings.length, sub: '+12% from last week', icon: '📅' },
-          { label: 'Wacu Community Audit', value: listings.filter(l => l.needsMigrationReview).length, sub: 'Needs attention', icon: '🛡️' },
-          { label: 'Pending Payouts', value: bookings.filter(b => b.status === 'COMPLETED' && !b.payoutReleased).length, sub: 'RWF 145,000', icon: '💰' },
-          { label: 'Open Disputes', value: bookings.filter(b => b.status === 'DISPUTED').length, sub: 'Needs attention', icon: '⚠️' },
+          { label: 'Community Audit', value: listings.filter(l => l.needsMigrationReview).length, sub: 'Needs attention', icon: '🛡️' },
+          { label: 'Pending Payouts', value: bookings.filter(b => b.status === 'COMPLETED' && !b.payoutReleased).length, sub: 'RWF 0', icon: '💰' },
+          { label: 'Open Disputes', value: bookings.filter(b => b.status === 'DISPUTED').length, sub: 'Active conflicts', icon: '⚠️' },
         ].map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div className="flex justify-between items-start">
@@ -97,7 +97,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 space-y-6">
-          <h3 className="text-lg font-black text-slate-900">Wacu Trust Logs</h3>
+          <h3 className="text-lg font-black text-slate-900">Platform Trust Logs</h3>
           <div className="space-y-4">
             {auditLogs.slice(0, 4).map((entry) => (
               <div key={entry.id} className="p-3 bg-slate-50 rounded-xl space-y-1">
@@ -122,7 +122,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
         return (
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden animate-fadeIn">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xl font-black text-slate-900">Wacu Home Approvals</h3>
+              <h3 className="text-xl font-black text-slate-900">Home Approvals</h3>
             </div>
             <table className="w-full text-left">
               <thead>
@@ -137,7 +137,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
                 {hostListings.map((l, i) => (
                   <tr key={i}>
                     <td className="px-8 py-5 text-sm font-bold text-slate-900">{l.name || 'Draft Listing'}</td>
-                    <td className="px-8 py-5 text-sm text-slate-500">{l.hostName || 'Emmanuel M.'}</td>
+                    <td className="px-8 py-5 text-sm text-slate-500">{l.hostName || 'Unassigned'}</td>
                     <td className="px-8 py-5"><StatusBadge status={l.status} /></td>
                     <td className="px-8 py-5">
                       <div className="flex gap-2">
@@ -168,7 +168,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
               <tbody className="divide-y divide-slate-50">
                 {bookings.map((b, i) => (
                   <tr key={i}>
-                    <td className="px-8 py-5 font-mono text-xs text-slate-400">#{b.id}</td>
+                    <td className="px-8 py-5 font-mono text-xs text-slate-400">#{b.id?.slice(-8)}</td>
                     <td className="px-8 py-5 text-sm font-bold text-slate-900">{b.guestName}</td>
                     <td className="px-8 py-5"><StatusBadge status={b.status} /></td>
                   </tr>
@@ -186,7 +186,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
     <div className="flex min-h-screen bg-slate-50 overflow-hidden font-sans">
       <aside className="w-72 bg-white border-r border-slate-100 p-8 flex flex-col hidden lg:flex">
         <div className="mb-12">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">WACU</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">KAZE</h1>
           <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mt-1">Management Hub</p>
         </div>
 
@@ -194,7 +194,7 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
           <SidebarItem id="DASHBOARD" label="Overview" icon="📊" />
           <SidebarItem id="LISTINGS" label="Approvals" icon="🏠" />
           <SidebarItem id="BOOKINGS" label="Reservations" icon="🎒" />
-          <SidebarItem id="PAYMENTS" label="MoMo Payouts" icon="💸" />
+          <SidebarItem id="PAYMENTS" label="MoMo Monitor" icon="💸" />
           <SidebarItem id="DISPUTES" label="Disputes" icon="⚖️" />
         </nav>
 
@@ -213,10 +213,10 @@ export const AdminPanel: React.FC<Props> = ({ listings, hostListings, bookings, 
         <header className="sticky top-0 z-40 bg-slate-50/80 backdrop-blur-md px-12 py-8 flex justify-between items-center border-b border-slate-100">
           <div>
             <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{activeSection.replace('_', ' ')}</h2>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">WACU • Community First</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">KAZE • Community First</p>
           </div>
           <div className="flex items-center gap-6">
-            <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-white font-black shadow-lg">W</div>
+            <div className="w-12 h-12 bg-slate-900 rounded-full flex items-center justify-center text-white font-black shadow-lg">K</div>
           </div>
         </header>
 

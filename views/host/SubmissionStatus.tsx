@@ -38,7 +38,7 @@ export const SubmissionStatus: React.FC<{ onHome: () => void }> = ({ onHome }) =
         onClick={onHome}
         className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl active:scale-95 transition-all mt-8 shadow-xl uppercase tracking-widest text-xs"
       >
-        Go to Wacu Dashboard
+        Go to Dashboard
       </button>
     </div>
   );

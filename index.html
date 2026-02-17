@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wacu - Rwandan Experiences</title>
+    <title>WACU - African Experiences</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -25,6 +25,14 @@
         .safe-bottom {
             padding-bottom: env(safe-area-inset-bottom);
         }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+          animation: shake 0.2s ease-in-out 0s 2;
+        }
     </style>
 <script type="importmap">
 {
@@ -38,5 +46,7 @@
 </head>
 <body class="antialiased text-slate-900">
     <div id="root"></div>
+    <!-- Required for Firebase Phone Auth -->
+    <div id="recaptcha-container"></div>
 </body>
 </html>

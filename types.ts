@@ -57,6 +57,7 @@ export interface GuestProfile {
     phone: string;
     confirmed: boolean;
   };
+  role: UserRole;
 }
 
 export interface HouseRule {
@@ -110,6 +111,7 @@ export interface StructuredReview {
 
 export interface Listing {
   id: string;
+  hostId: string;
   title: string;
   hostName: string;
   hostAvatar: string;
@@ -160,7 +162,6 @@ export interface Listing {
   paymentMethodType?: 'MERCHANT_CODE' | 'PHONE_NUMBER';
   paymentIdentifier?: string;
   commissionConsent?: boolean;
-  // Future Flags
   escrowEnabled?: boolean; 
 }
 
@@ -171,12 +172,15 @@ export interface AuditEntry {
   details: string;
   bookingId?: string;
   raisedBy?: 'GUEST' | 'HOST' | 'SYSTEM';
+  userId?: string;
 }
 
 export interface BookingState {
   id?: string;
+  guestId?: string;
+  hostId?: string;
   listingId: string | null;
-  listingTitle?: string; // Cache for dashboard
+  listingTitle?: string;
   guestName?: string;
   guestProfile?: GuestProfile;
   hostName?: string;
@@ -185,6 +189,7 @@ export interface BookingState {
   adults: number;
   children: number;
   paymentMethod: 'MTN' | 'AIRTEL' | 'ARRIVAL' | null;
+  paymentMethodType?: 'MERCHANT_CODE' | 'PHONE_NUMBER';
   status: 'DRAFT' | 'PENDING_APPROVAL' | 'PENDING_PAYMENT' | 'CONFIRMED' | 'ACTIVE_STAY' | 'COMPLETED' | 'DISPUTED' | 'CANCELLED';
   totalPrice: number;
   payoutReleased: boolean;
@@ -197,16 +202,12 @@ export interface BookingState {
   safetyCheckPerformed?: boolean;
   adminTrustOverride?: boolean;
   disputeReason?: string;
-  
-  // Phase 1 Payment Tracking
   guestPaymentMarked?: boolean;
   hostPaymentConfirmed?: boolean;
   hostConfirmationDate?: string;
   expectedCommission?: number;
   commissionMarkedSent?: boolean;
   commissionRemittanceNote?: string;
-  
-  // Dispute Flow Details
   disputeProofText?: string;
   disputeProofImage?: string;
   hostDisputeResponse?: 'NOT_RECEIVED' | 'RECEIVED_LATER';

@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { GuestProfile, TrustBadge } from '../types';
+import { auth, uploadImage } from '../firebase';
 
 interface Props {
   guest: GuestProfile;
@@ -24,6 +25,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleStepComplete = (newBadge?: TrustBadge, nextLevel?: 1 | 2 | 3) => {
@@ -52,17 +54,26 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
         setIsSubmitting(false);
         onComplete();
       }
-    }, 2000);
+    }, 1500);
   };
 
-  const handleIdUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, idImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const userId = auth.currentUser?.uid || 'anonymous';
+      const fileName = `id_${Date.now()}_${file.name}`;
+      const path = `id_vault/${userId}/${fileName}`;
+      
+      const downloadUrl = await uploadImage(file, path);
+      setFormData(prev => ({ ...prev, idImage: downloadUrl }));
+    } catch (err) {
+      console.error("ID upload failed", err);
+      alert("Failed to upload identity document.");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -110,7 +121,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
               rows={4}
               value={formData.bio}
               onChange={(e) => setFormData({...formData, bio: e.target.value})}
-              placeholder="Tell our hosts why you're traveling and what makes you a great neighbor..."
+              placeholder="Tell our hosts why you're traveling..."
               className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-amber-400 font-medium text-sm leading-relaxed shadow-inner"
             />
           </div>
@@ -138,27 +149,32 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
         </div>
 
         <div 
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !isUploading && fileInputRef.current?.click()}
           className={`flex-1 border-4 border-dashed rounded-[3rem] flex flex-col items-center justify-center p-8 transition-all cursor-pointer ${formData.idImage ? 'border-emerald-200 bg-emerald-50' : 'border-slate-100 bg-slate-50 hover:bg-slate-100'}`}
         >
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleIdUpload} />
-          {formData.idImage ? (
+          {isUploading ? (
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 border-4 border-amber-100 border-t-amber-500 rounded-full animate-spin mx-auto"></div>
+              <p className="text-xs font-black text-amber-600 uppercase tracking-widest">Encrypting Upload...</p>
+            </div>
+          ) : formData.idImage ? (
             <div className="space-y-4 text-center">
               <img src={formData.idImage} className="w-48 h-32 object-cover rounded-2xl mx-auto shadow-lg" alt="ID Preview" />
-              <p className="text-xs font-black text-emerald-600 uppercase">Document Captured Successfully</p>
+              <p className="text-xs font-black text-emerald-600 uppercase">Document Securely Captured</p>
             </div>
           ) : (
             <div className="text-center space-y-4">
               <span className="text-6xl">📸</span>
-              <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tap to Scan</p>
+              <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Tap to Scan ID</p>
             </div>
           )}
         </div>
 
         <button 
           onClick={() => handleStepComplete('Identity Verified', 2)}
-          disabled={!formData.idImage}
-          className={`w-full py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl transition-all active:scale-95 ${formData.idImage ? 'bg-slate-900 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+          disabled={!formData.idImage || isUploading}
+          className={`w-full py-5 rounded-[1.5rem] font-black uppercase tracking-widest text-xs shadow-xl transition-all active:scale-95 ${formData.idImage && !isUploading ? 'bg-slate-900 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
         >
           Submit to Vault
         </button>
@@ -173,7 +189,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
         <div className="space-y-2">
            <button onClick={() => setStep('CHOICE')} className="text-[10px] font-black text-slate-400 uppercase mb-2">← Back to Options</button>
            <h2 className="text-3xl font-black text-slate-900 leading-tight">Community Vouch</h2>
-           <p className="text-slate-500 text-sm font-medium">Who in the Wacu community can vouch for your integrity? We'll send them a quick trust check.</p>
+           <p className="text-slate-500 text-sm font-medium">Who in the Wacu community can vouch for your integrity?</p>
         </div>
 
         <div className="space-y-6">
@@ -203,7 +219,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
         <div className="p-6 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex items-start gap-4">
            <span className="text-2xl mt-1">🤝</span>
            <p className="text-[10px] text-blue-800 font-medium leading-relaxed">
-             Our team will perform a 30-second verification call with your reference to confirm your community status.
+             Our team will perform a trust verification call with your reference.
            </p>
         </div>
 
@@ -223,7 +239,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
     <div className="p-6 flex flex-col space-y-8 animate-slideUp h-full">
       <div className="space-y-2">
         <h2 className="text-3xl font-black text-slate-900 leading-tight">Wacu Trust</h2>
-        <p className="text-slate-500 text-sm font-medium">To protect our hosts' households, we require advanced verification to book shared homes.</p>
+        <p className="text-slate-500 text-sm font-medium">To protect our hosts' households, we require advanced verification.</p>
       </div>
 
       <div className="space-y-4">
@@ -258,7 +274,7 @@ export const GuestVerificationView: React.FC<Props> = ({ guest, onUpdate, onComp
           <div className="space-y-1">
             <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-widest">Wacu Secure Vault</h4>
             <p className="text-[10px] text-white/70 font-medium leading-relaxed">
-              We never share your raw ID data. We only issue a Trust Badge to our hosts.
+              We never share your raw ID data. We only issue Trust Badges.
             </p>
           </div>
         </div>

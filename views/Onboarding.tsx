@@ -17,7 +17,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             <div className="space-y-4">
               <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Yambi.</h2>
               <p className="text-slate-500 font-medium leading-relaxed">
-                Wacu lets you stay in real homes, hosted by real people.
+                WACU lets you stay in real homes, hosted by real people across the continent.
               </p>
             </div>
           </div>
@@ -30,7 +30,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Find a Wacu</h2>
               <p className="text-slate-500 font-medium leading-relaxed">
                 Choose how you want to stay.<br/>
-                With a host, or with space to yourself.
+                With a local host, or with space to yourself.
               </p>
             </div>
           </div>
@@ -43,7 +43,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Trust matters here</h2>
               <p className="text-slate-500 font-medium leading-relaxed">
                 Hosts and guests verify themselves.<br/>
-                Everyone knows who they’re welcoming.
+                Everyone knows who they’re welcoming into their home.
               </p>
             </div>
           </div>

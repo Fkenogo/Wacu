@@ -16,6 +16,22 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
   const [confirmIdentifier, setConfirmIdentifier] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const handleIdentifierChange = (val: string) => {
+    const numericVal = val.replace(/\D/g, '');
+    const limit = state.paymentMethodType === 'PHONE_NUMBER' ? 10 : 8;
+    if (numericVal.length <= limit) {
+      onUpdate({ paymentIdentifier: numericVal });
+    }
+  };
+
+  const handleConfirmChange = (val: string) => {
+    const numericVal = val.replace(/\D/g, '');
+    const limit = state.paymentMethodType === 'PHONE_NUMBER' ? 10 : 8;
+    if (numericVal.length <= limit) {
+      setConfirmIdentifier(numericVal);
+    }
+  };
+
   const validateAndContinue = () => {
     setError(null);
 
@@ -38,13 +54,13 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
       }
     } else {
       if (id.length < 5 || id.length > 8) {
-        setError("Enter a valid MTN Merchant Code (5-8 digits).");
+        setError("MTN Merchant Code must be between 5 and 8 digits.");
         return;
       }
     }
 
     if (id !== confirmIdentifier) {
-      setError("The confirmation does not match the payment identifier. Please check again.");
+      setError("The confirmation code does not match. Please check again.");
       return;
     }
 
@@ -121,13 +137,18 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
         {state.paymentMethodType === 'MERCHANT_CODE' && (
           <div className="space-y-4 animate-slideDown">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">MTN Merchant Code</label>
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MTN Merchant Code</label>
+                <span className="text-[9px] font-black text-slate-300 uppercase">{state.paymentIdentifier?.length || 0}/8</span>
+              </div>
               <input 
                 type="tel"
+                inputMode="numeric"
                 value={state.paymentIdentifier || ''}
-                onChange={(e) => onUpdate({ paymentIdentifier: e.target.value.replace(/\D/g, '') })}
-                placeholder="e.g. 123456"
-                className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner"
+                onChange={(e) => handleIdentifierChange(e.target.value)}
+                placeholder="Enter 5-8 digit code"
+                maxLength={8}
+                className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner tracking-widest"
               />
               <p className="text-[9px] font-black text-amber-600 uppercase tracking-tighter ml-1">🏪 Verify your merchant code — Guests cannot pay if it's wrong.</p>
             </div>
@@ -135,10 +156,12 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Merchant Code</label>
               <input 
                 type="tel"
+                inputMode="numeric"
                 value={confirmIdentifier}
-                onChange={(e) => setConfirmIdentifier(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => handleConfirmChange(e.target.value)}
                 placeholder="Repeat merchant code..."
-                className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner"
+                maxLength={8}
+                className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner tracking-widest"
               />
             </div>
           </div>
@@ -147,12 +170,17 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
         {state.paymentMethodType === 'PHONE_NUMBER' && (
           <div className="space-y-4 animate-slideDown">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">MTN Mobile Money Number</label>
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MTN Mobile Money Number</label>
+                <span className="text-[9px] font-black text-slate-300 uppercase">{state.paymentIdentifier?.length || 0}/10</span>
+              </div>
               <input 
                 type="tel"
+                inputMode="numeric"
                 value={state.paymentIdentifier || ''}
-                onChange={(e) => onUpdate({ paymentIdentifier: e.target.value.replace(/\D/g, '') })}
+                onChange={(e) => handleIdentifierChange(e.target.value)}
                 placeholder="e.g. 078XXXXXXX"
+                maxLength={10}
                 className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner"
               />
               <p className="text-[9px] font-black text-amber-600 uppercase tracking-tighter ml-1">📱 Double-check your number — Incorrect details delay payouts.</p>
@@ -161,9 +189,11 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Phone Number</label>
               <input 
                 type="tel"
+                inputMode="numeric"
                 value={confirmIdentifier}
-                onChange={(e) => setConfirmIdentifier(e.target.value.replace(/\D/g, ''))}
+                onChange={(e) => handleConfirmChange(e.target.value)}
                 placeholder="Repeat phone number..."
+                maxLength={10}
                 className="w-full px-6 py-4 bg-white border-2 border-gray-100 rounded-2xl outline-none font-bold text-lg focus:border-amber-400 transition-all shadow-inner"
               />
             </div>
@@ -195,7 +225,7 @@ export const PaymentSetup: React.FC<Props> = ({ state, onUpdate, onContinue, onH
               <button 
                 onClick={() => onUpdate({ commissionConsent: !state.commissionConsent })}
                 className={`w-14 h-8 rounded-full relative transition-all duration-300 shrink-0 shadow-inner ${
-                  state.commissionConsent ? 'bg-amber-500' : 'bg-white/10'
+                  state.commissionConsent ? 'bg-amber-50' : 'bg-white/10'
                 }`}
               >
                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg transition-all duration-300 ${

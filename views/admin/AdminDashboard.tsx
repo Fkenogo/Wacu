@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Listing, BookingState, AuditEntry } from '../../types';
+import * as dbService from '../../services/db';
 
 interface Props {
   listings: Listing[];
@@ -12,9 +13,10 @@ interface Props {
 }
 
 export const AdminDashboard: React.FC<Props> = ({ listings, trips, requests, onUpdateStatus, onResolveDispute, auditLogs }) => {
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'DISPUTES' | 'AUDIT'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'DISPUTES' | 'AUDIT' | 'TASKS'>('OVERVIEW');
   const [selectedDispute, setSelectedDispute] = useState<string | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
 
   const disputedTrips = requests.filter(t => t.status === 'DISPUTED');
   
@@ -26,6 +28,19 @@ export const AdminDashboard: React.FC<Props> = ({ listings, trips, requests, onU
     onResolveDispute(id, outcome, resolutionNote);
     setSelectedDispute(null);
     setResolutionNote('');
+  };
+
+  const handleRunNudges = async () => {
+    setIsRunning(true);
+    try {
+      const sent = await dbService.runDailyNudges();
+      alert(`System Task Complete: ${sent.length} nudges processed.`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to run nudges.");
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   return (
@@ -41,7 +56,7 @@ export const AdminDashboard: React.FC<Props> = ({ listings, trips, requests, onU
       </div>
 
       <div className="flex p-1 bg-gray-100 rounded-2xl">
-        {(['OVERVIEW', 'DISPUTES', 'AUDIT'] as const).map(tab => (
+        {(['OVERVIEW', 'DISPUTES', 'AUDIT', 'TASKS'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -82,6 +97,47 @@ export const AdminDashboard: React.FC<Props> = ({ listings, trips, requests, onU
                </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'TASKS' && (
+        <div className="space-y-6 animate-fadeIn">
+           <h3 className="font-black text-slate-800 uppercase tracking-widest text-[11px] ml-1">System Maintenance</h3>
+           <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 space-y-6 shadow-sm">
+              <div className="space-y-2">
+                <h4 className="text-sm font-black text-slate-900 uppercase">Daily Nudge Trigger</h4>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  Manually trigger stay reminders for bookings starting tomorrow. In production, this runs automatically at 08:00 AM Kigali time.
+                </p>
+              </div>
+              <button 
+                onClick={handleRunNudges}
+                disabled={isRunning}
+                className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${isRunning ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white shadow-lg active:scale-95'}`}
+              >
+                {isRunning ? 'Processing...' : '🚀 Execute Daily Nudges'}
+              </button>
+           </div>
+
+           <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white space-y-4">
+              <div className="flex items-start gap-4">
+                <span className="text-2xl">🤖</span>
+                <div className="space-y-1">
+                   <h4 className="text-sm font-black uppercase text-amber-400">Bot Statistics</h4>
+                   <p className="text-[10px] text-slate-400">Automated actions in the last 24h</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                 <div className="bg-white/10 p-4 rounded-2xl">
+                    <p className="text-xl font-black">45</p>
+                    <p className="text-[8px] font-bold uppercase opacity-60">Nudges Sent</p>
+                 </div>
+                 <div className="bg-white/10 p-4 rounded-2xl">
+                    <p className="text-xl font-black">12</p>
+                    <p className="text-[8px] font-bold uppercase opacity-60">Rating Recalcs</p>
+                 </div>
+              </div>
+           </div>
         </div>
       )}
 
